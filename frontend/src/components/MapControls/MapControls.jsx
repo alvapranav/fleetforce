@@ -1,6 +1,6 @@
 import React from 'react'
 
-const MapControls = () => {
+const MapControls = ({tripId, arrivalDate}) => {
   return (
     <div>MapControls</div>
   )

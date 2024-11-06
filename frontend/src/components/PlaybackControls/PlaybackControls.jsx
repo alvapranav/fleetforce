@@ -1,6 +1,6 @@
 import React from 'react'
 
-const PlaybackControls = () => {
+const PlaybackControls = ({ tripId, arrivalDate }) => {
   return (
     <div>PlaybackControls</div>
   )
