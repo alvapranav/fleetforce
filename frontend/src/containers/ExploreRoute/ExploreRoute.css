@@ -1,0 +1,9 @@
+.top-row{
+    display: flex;
+    gap: 10px;
+}
+
+.bottom-row{
+    display: flex;
+    gap: 10px;
+}

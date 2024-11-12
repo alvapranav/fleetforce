@@ -89,27 +89,42 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
         setCurrentPosition(position)
     }
 
+    const handleChangeMapStyle = (style) => {
+    }
+
+    const handleToggleHeatMap = () => {
+    }
+
     return (
-        <Box p={2}>
-            <Typography variant="h4" gutterBottom>
-                Trip #{tripId} - Tractor
-            </Typography>
-            <Grid2 container spacing={2}>
-                {/* Left Side: Mappying Visualization */}
-                <Grid2 item xs={9}>
-                    <ViewRoute mapContainerRef={mapContainerRef} mapInstance={mapInstance} stops={stops} trips={trips} isDataLoading={loadingstops} currentPosition={currentPosition}/>
-                    {/* Playback Controls */}
-                    <PlaybackControls stops={stops} onPositionChange={handlePositionChange} />
-                </Grid2>
-
-                {/* Right Side: Metrics and Controls*/}
-                <Grid2 item xs={3}>
-                    <ViewMetric tripId={tripId} arrivalDate={arrivalDate} />
-                    <MapControls />
-                </Grid2>
-
-            </Grid2>
-        </Box>
+        <div className="explore-route">
+            <h1>Trip ID: {tripId} &emsp;Tractor ID: {stops[0].tractor_id}</h1>
+            <div className="top-row">
+                <ViewRoute
+                    mapContainerRef={mapContainerRef}
+                    mapInstance={mapInstance}
+                    stops={stops}
+                    trips={trips}
+                    loadingstops={loadingstops}
+                    currentPosition={currentPosition}
+                />
+                <ViewMetric
+                    trips={trips}
+                    stops={stops}
+                    currentPosition={currentPosition}
+                />
+            </div>
+            <div className="bottom-row">
+                <PlaybackControls
+                    stops={stops}
+                    onPositionChange={handlePositionChange}
+                />
+                <MapControls
+                    stops={stops}
+                    onChangeMapStyle={handleChangeMapStyle}
+                    onToggleHeatMap={handleToggleHeatMap}
+                />
+            </div>
+        </div>
     )
 }
 

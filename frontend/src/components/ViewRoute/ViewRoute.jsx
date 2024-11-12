@@ -35,16 +35,12 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, trips, loadingstops, c
           })),
         }
 
-        const speeds = gpsData.map((point) => point.speed)
-        const maxSpeed = Math.max(...speeds)
-        const minSpeed = Math.min(...speeds)
-
-        const interpolateColor = (value, min, max) => {
-          const ratio = (value - min) / (max - min)
-          const red = Math.round(255 * (1 - ratio))
-          const green = Math.round(255 * ratio)
-          return `rgb(${red}, ${green}, 0)`
-        }
+        const speedStops = [
+          [0, 'red'],
+          [30, 'orange'],
+          [50, 'yellow'],
+          [80, 'green']
+        ]
 
         mapInstance.on('load', () => {
           if (mapInstance.getSource('route')) {
@@ -65,10 +61,7 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, trips, loadingstops, c
                   'interpolate',
                   ['linear'],
                   ['get', 'speed'],
-                  minSpeed,
-                  interpolateColor(minSpeed, minSpeed, maxSpeed),
-                  maxSpeed,
-                  interpolateColor(maxSpeed, minSpeed, maxSpeed),
+                  ...speedStops.flat(),
                 ],
               },
             })
