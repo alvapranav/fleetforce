@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -6,116 +6,160 @@ import './ViewRoute.css'
 import { icons } from '../../constants'
 import PinBase from '../../assets/location-pin-solid'
 
-const ViewRoute = ({ mapContainerRef, mapInstance, stops, trips, loadingstops, currentPosition }) => {
+const ViewRoute = ({ mapContainerRef, mapInstance, stops, trips, loadingstops, currentPosition, mapStyle }) => {
+  const [routeGeoJson, setRouteGeoJson] = useState(null)
+  const layersRef = useRef([])
+  const markersRef = useRef([])
 
   useEffect(() => {
-    if (!mapInstance || loadingstops) return;
+    // if (!mapInstance || loadingstops) return;
 
     if (!loadingstops && stops.length > 0) {
 
-      if (currentPosition === 0) {
+      // if (currentPosition === 0) {
 
-        var gpsData = trips.gps
-        gpsData = JSON.parse(gpsData)
+      var gpsData = trips.gps
+      gpsData = JSON.parse(gpsData)
 
-        // Add route layer
-        const routeGeoJson = {
-          type: 'FeatureCollection',
-          features: gpsData.map((point) => ({
-            type: 'Feature',
-            geometry: {
-              type: 'Point',
-              coordinates: [point.Longitude_gps, point.Latitude_gps],
+      // Add route layer
+      setRouteGeoJson({
+        type: 'FeatureCollection',
+        features: gpsData.map((point) => ({
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [point.Longitude_gps, point.Latitude_gps],
+          },
+          properties: {
+            timestamp: point.Dt,
+            speed: point.speed,
+            mileage: point.mileage,
+          },
+        })),
+      })
+
+    }
+  }, [trips, stops, loadingstops]);
+
+  useEffect(() => {
+    if (!mapInstance || !routeGeoJson) return;
+
+    if (currentPosition === 0) {
+      const speedStops = [
+        [0, 'red'],
+        [30, 'orange'],
+        [50, 'yellow'],
+        [80, 'green']
+      ]
+
+      mapInstance.on('load', () => {
+        if (mapInstance.getSource('route')) {
+          mapInstance.getSource('route').setData(routeGeoJson)
+        } else {
+          mapInstance.addSource('route', {
+            type: 'geojson',
+            data: routeGeoJson,
+          })
+
+          const layer = {
+            id: 'route-points',
+            source: 'route',
+            type: 'circle',
+            paint: {
+              'circle-radius': 4,
+              'circle-color': [
+                'interpolate',
+                ['linear'],
+                ['get', 'speed'],
+                ...speedStops.flat(),
+              ],
             },
-            properties: {
-              timestamp: point.Dt,
-              speed: point.speed,
-              mileage: point.mileage,
-            },
-          })),
-        }
-
-        const speedStops = [
-          [0, 'red'],
-          [30, 'orange'],
-          [50, 'yellow'],
-          [80, 'green']
-        ]
-
-        mapInstance.on('load', () => {
-          if (mapInstance.getSource('route')) {
-            mapInstance.getSource('route').setData(routeGeoJson)
-          } else {
-            mapInstance.addSource('route', {
-              type: 'geojson',
-              data: routeGeoJson,
-            })
-
-            mapInstance.addLayer({
-              id: 'route-points',
-              source: 'route',
-              type: 'circle',
-              paint: {
-                'circle-radius': 4,
-                'circle-color': [
-                  'interpolate',
-                  ['linear'],
-                  ['get', 'speed'],
-                  ...speedStops.flat(),
-                ],
-              },
-            })
           }
 
-          const bounds = routeGeoJson.features.reduce((bounds, feature) => {
-            return bounds.extend(feature.geometry.coordinates)
-          }, new maplibregl.LngLatBounds(routeGeoJson.features[0].geometry.coordinates, routeGeoJson.features[0].geometry.coordinates))
+          mapInstance.addLayer(layer)
 
-          mapInstance.fitBounds(bounds, { padding: 20 })
+          layersRef.current.push(layer)
+        }
 
-        })
+        const bounds = routeGeoJson.features.reduce((bounds, feature) => {
+          return bounds.extend(feature.geometry.coordinates)
+        }, new maplibregl.LngLatBounds(routeGeoJson.features[0].geometry.coordinates, routeGeoJson.features[0].geometry.coordinates))
 
-        // Add stops markers
-        stops.forEach((stop) => {
-          const el = document.createElement('div')
-          el.className = 'custom-marker'
-          el.id = 'custom-marks'
+        mapInstance.fitBounds(bounds, { padding: 20 })
 
-          const IconComponent = getMarkerIcon(stop.type_new)
+      })
 
-          const root = createRoot(el)
-          root.render(
-            <div className='pin-base'>
-              <PinBase
-                fill={getMarkerColor(stop.type_new)}
-                width={30}
-                height={42}
-                style={{ position: 'absolute', top: 0, left: 0 }}
-              />
-              <div className='pin-icon'>
-                {IconComponent &&
-                  <IconComponent
-                    width={18}
-                    height={18}
-                    fill={getIconColor(stop.type_new)}
-                    style={{ position: 'absolute', top: 6 }}
-                  />}
-              </div>
+      // Add stops markers
+      stops.forEach((stop) => {
+        const el = document.createElement('div')
+        el.className = 'custom-marker'
+        el.id = 'custom-marks'
+
+        const IconComponent = getMarkerIcon(stop.type_new)
+
+        const root = createRoot(el)
+        root.render(
+          <div className='pin-base'>
+            <PinBase
+              fill={getMarkerColor(stop.type_new)}
+              width={30}
+              height={42}
+              style={{ position: 'absolute', top: 0, left: 0 }}
+            />
+            <div className='pin-icon'>
+              {IconComponent &&
+                <IconComponent
+                  width={18}
+                  height={18}
+                  fill={getIconColor(stop.type_new)}
+                  style={{ position: 'absolute', top: 6 }}
+                />}
             </div>
-          )
+          </div>
+        )
 
-          const popupContent = createPopupContent(stop)
+        const popupContent = createPopupContent(stop)
 
-          new maplibregl.Marker({ element: el, anchor: 'bottom' })
-            .setLngLat([stop.longitude, stop.latitude])
-            .setPopup(new maplibregl.Popup().setDOMContent(popupContent))
-            .addTo(mapInstance)
-        })
+        const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+          .setLngLat([stop.longitude, stop.latitude])
+          .setPopup(new maplibregl.Popup().setDOMContent(popupContent))
+          .addTo(mapInstance)
 
-      }
+        markersRef.current.push(marker)
+      })
+
+
     }
+  }, [routeGeoJson, currentPosition]);
 
-  }, [mapInstance, trips, stops, loadingstops, currentPosition]);
+  useEffect(() => {
+    if (!mapInstance || !routeGeoJson) return;
+
+    mapInstance.on('styledata', () => {
+      restoreLayers();
+      restoreMarkers();
+    })
+  }, [mapInstance, mapStyle]);
+
+  const restoreLayers = () => {
+    if (mapInstance.getSource('route')) {
+      mapInstance.getSource('route').setData(routeGeoJson)
+    } else {
+      mapInstance.addSource('route', {
+        type: 'geojson',
+        data: routeGeoJson,
+      })
+      layersRef.current.forEach((layer) => {
+        mapInstance.addLayer(layer)
+      })
+    }
+  }
+
+  const restoreMarkers = () => {
+    markersRef.current.forEach((marker) => {
+      marker.addTo(mapInstance)
+    })
+  }
 
   const getMarkerIcon = (type) => {
     // Return the icon based on the type
@@ -202,7 +246,7 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, trips, loadingstops, c
     const dwellTimeFormatted = `${dwellHours}h ${dwellMinutes}m`
 
     container.innerHTML = `
-      <h3>${capitalizeFirstLetter(stop.type_new)} Stop</h3>
+      <h3>${capitalizeFirstLetter(stop.type_new)}</h3>
       <p"><strong>Arrival Time:</strong> ${arrivalTime}</p>
       <p"><strong>Departure Time:</strong> ${departureTime}</p>
       <p"><strong>Dwell Time:</strong> ${dwellTimeFormatted}</p>

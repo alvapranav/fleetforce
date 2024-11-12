@@ -16,6 +16,8 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
     const [loadingtrips, setLoadingTrips] = useState(true)
     const [loadingstops, setLoadingStops] = useState(true)
     const [currentPosition, setCurrentPosition] = useState(0)
+    const [mapStyle, setMapStyle] = useState('https://api.maptiler.com/maps/basic-v2/style.json?key=oGOTJkyBZPxrLa145LN6')
+    const [examineStop, setExamineStop] = useState(false)
     const [truckMarker, setTruckMarker] = useState(null)
 
     useEffect(() => {
@@ -90,14 +92,24 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
     }
 
     const handleChangeMapStyle = (style) => {
+        setMapStyle(style)
+        mapInstance.setStyle(style)
     }
 
     const handleToggleHeatMap = () => {
     }
 
+    const handleExamineStop = () => {
+        setExamineStop(!examineStop)
+    }
+
     return (
         <div className="explore-route">
-            <h1>Trip ID: {tripId} &emsp;Tractor ID: {stops[0].tractor_id}</h1>
+            {stops.length > 0 ? (
+                <h1>Trip ID: {tripId} &emsp;Tractor ID: {stops[0].tractor_id}</h1>
+            ) : (
+                <h1>Loading...</h1>
+            )}
             <div className="top-row">
                 <ViewRoute
                     mapContainerRef={mapContainerRef}
@@ -106,6 +118,7 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
                     trips={trips}
                     loadingstops={loadingstops}
                     currentPosition={currentPosition}
+                    mapStyle={mapStyle}
                 />
                 <ViewMetric
                     trips={trips}
@@ -121,6 +134,7 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
                 <MapControls
                     stops={stops}
                     onChangeMapStyle={handleChangeMapStyle}
+                    onExamineStop={handleExamineStop}
                     onToggleHeatMap={handleToggleHeatMap}
                 />
             </div>
