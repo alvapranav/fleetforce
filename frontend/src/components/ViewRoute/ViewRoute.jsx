@@ -1,188 +1,128 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import axios from 'axios'
 import './ViewRoute.css'
 import { icons } from '../../constants'
 import PinBase from '../../assets/location-pin-solid'
 
-const ViewRoute = ({ tripId, arrivalDate }) => {
-  const mapContainerRef = useRef(null)
-  const map = useRef(null)
-  const [mapInstance, setMapInstance] = useState(null)
-  const [trips, setTrips] = useState(null);
-  const [stops, setStops] = useState([]);
-  const [toArrivalDate, setToArrivalDate] = useState('')
-  const [loadingtrips, setLoadingTrips] = useState(true)
-  const [loadingstops, setLoadingStops] = useState(true)
+const ViewRoute = ({ mapContainerRef, mapInstance, stops, trips, loadingstops, currentPosition }) => {
 
   useEffect(() => {
-    if (map.current) return;
+    if (!mapInstance || loadingstops) return;
 
-    map.current = new maplibregl.Map({
-      container: mapContainerRef.current,
-      style: "https://api.maptiler.com/maps/basic-v2/style.json?key=oGOTJkyBZPxrLa145LN6",
-      center: [139.753, 35.6844],
-      zoom: 14,
-    });
+    if (!loadingstops && stops.length > 0) {
 
-    map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
+      if (currentPosition === 0) {
 
-    setMapInstance(map.current);
-  }, []);
+        var gpsData = trips.gps
+        gpsData = JSON.parse(gpsData)
 
-  useEffect(() => {
-    if (!mapInstance) return
-
-    const fetchTripsData = async () => {
-      try {
-        setLoadingTrips(true)
-
-        const response = await axios.get(`/api/trips/${tripId}/${arrivalDate}`)
-        const tripsData = response.data
-
-        setTrips(tripsData[0])
-
-        setLoadingTrips(false)
-
-      }
-      catch (error) {
-        console.error('Error fetching trips data:', error)
-        setLoadingTrips(false)
-      }
-    }
-
-    fetchTripsData()
-
-  }, [mapInstance, tripId, arrivalDate]);
-
-  useEffect(() => {
-    if (!mapInstance) return
-    const fetchStopsData = async () => {
-      try {
-
-        setLoadingStops(true)
-
-        const endDate = trips.to_arrival_datetime
-        setToArrivalDate(endDate);
-        console.log(toArrivalDate)
-
-        const response = await axios.get(`/api/stops/${tripId}/${arrivalDate}/${toArrivalDate}`)
-        const stopsData = response.data
-        setStops(stopsData)
-
-        setLoadingStops(false)
-
-      }
-      catch (error) {
-        console.error('Error fetching stops data:', error)
-        setLoadingStops(false)
-      }
-    }
-
-    fetchStopsData()
-
-  }, [mapInstance, tripId, arrivalDate, trips, loadingtrips, toArrivalDate]);
-
-  useEffect(() => {
-    if (!mapInstance) return;
-
-    if (trips && stops.length > 0 && loadingstops === false) {
-      var gpsData = trips.gps
-      gpsData = JSON.parse(gpsData)
-
-      // Add route layer
-      const routeGeoJson = {
-        type: 'FeatureCollection',
-        features: gpsData.map((point) => ({
-          type: 'Feature',
-          geometry: {
-            type: 'Point',
-            coordinates: [point.Longitude_gps, point.Latitude_gps],
-          },
-          properties: {
-            timestamp: point.Dt,
-          },
-        })),
-      }
-
-      mapInstance.on('load', () => {
-        if (mapInstance.getSource('route')) {
-          mapInstance.getSource('route').setData(routeGeoJson)
-        } else {
-          mapInstance.addSource('route', {
-            type: 'geojson',
-            data: routeGeoJson,
-          })
-
-          mapInstance.addLayer({
-            id: 'route-points',
-            source: 'route',
-            type: 'circle',
-            paint: {
-              'circle-color': 'gray',
-              'circle-radius': 6,
+        // Add route layer
+        const routeGeoJson = {
+          type: 'FeatureCollection',
+          features: gpsData.map((point) => ({
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [point.Longitude_gps, point.Latitude_gps],
             },
-          })
+            properties: {
+              timestamp: point.Dt,
+              speed: point.speed,
+              mileage: point.mileage,
+            },
+          })),
         }
 
-        const bounds = routeGeoJson.features.reduce((bounds, feature) => {
-          return bounds.extend(feature.geometry.coordinates)
-        }, new maplibregl.LngLatBounds(routeGeoJson.features[0].geometry.coordinates, routeGeoJson.features[0].geometry.coordinates))
+        const speeds = gpsData.map((point) => point.speed)
+        const maxSpeed = Math.max(...speeds)
+        const minSpeed = Math.min(...speeds)
 
-        mapInstance.fitBounds(bounds, { padding: 20 })
+        const interpolateColor = (value, min, max) => {
+          const ratio = (value - min) / (max - min)
+          const red = Math.round(255 * (1 - ratio))
+          const green = Math.round(255 * ratio)
+          return `rgb(${red}, ${green}, 0)`
+        }
 
-      })
+        mapInstance.on('load', () => {
+          if (mapInstance.getSource('route')) {
+            mapInstance.getSource('route').setData(routeGeoJson)
+          } else {
+            mapInstance.addSource('route', {
+              type: 'geojson',
+              data: routeGeoJson,
+            })
 
-      // Add stops markers
-      stops.forEach((stop) => {
-        const el = document.createElement('div')
-        el.className = 'custom-marker'
+            mapInstance.addLayer({
+              id: 'route-points',
+              source: 'route',
+              type: 'circle',
+              paint: {
+                'circle-radius': 4,
+                'circle-color': [
+                  'interpolate',
+                  ['linear'],
+                  ['get', 'speed'],
+                  minSpeed,
+                  interpolateColor(minSpeed, minSpeed, maxSpeed),
+                  maxSpeed,
+                  interpolateColor(maxSpeed, minSpeed, maxSpeed),
+                ],
+              },
+            })
+          }
 
-        const IconComponent = getMarkerIcon(stop.type_new)
+          const bounds = routeGeoJson.features.reduce((bounds, feature) => {
+            return bounds.extend(feature.geometry.coordinates)
+          }, new maplibregl.LngLatBounds(routeGeoJson.features[0].geometry.coordinates, routeGeoJson.features[0].geometry.coordinates))
 
-        const root = createRoot(el)
-        root.render(
-          <div className='pin-base'>
-            <PinBase 
-              fill={getMarkerColor(stop.type_new)}
-              width={30}
-              height={42}
-              style={{position: 'absolute', top: 0, left: 0}}
-            />
-            <div className='pin-icon'>
-            {IconComponent && 
-            <IconComponent
-              width={18}
-              height={18}
-              fill={getIconColor(stop.type_new)}
-              style={{position: 'absolute', top: 6}}
-            />}
+          mapInstance.fitBounds(bounds, { padding: 20 })
+
+        })
+
+        // Add stops markers
+        stops.forEach((stop) => {
+          const el = document.createElement('div')
+          el.className = 'custom-marker'
+          el.id = 'custom-marks'
+
+          const IconComponent = getMarkerIcon(stop.type_new)
+
+          const root = createRoot(el)
+          root.render(
+            <div className='pin-base'>
+              <PinBase
+                fill={getMarkerColor(stop.type_new)}
+                width={30}
+                height={42}
+                style={{ position: 'absolute', top: 0, left: 0 }}
+              />
+              <div className='pin-icon'>
+                {IconComponent &&
+                  <IconComponent
+                    width={18}
+                    height={18}
+                    fill={getIconColor(stop.type_new)}
+                    style={{ position: 'absolute', top: 6 }}
+                  />}
+              </div>
             </div>
-          </div>
-        )
+          )
 
-        // const base = document.createElement('div')
-        // base.className = 'pin-base'
-        // base.style.backgroundColor = getMarkerColor(stop.type_new)
+          const popupContent = createPopupContent(stop)
 
-        // const icon = document.createElement('img')
-        // icon.src = getMarkerIcon(stop.type_new)
-        // icon.className = 'pin-icon'
+          new maplibregl.Marker({ element: el, anchor: 'bottom' })
+            .setLngLat([stop.longitude, stop.latitude])
+            .setPopup(new maplibregl.Popup().setDOMContent(popupContent))
+            .addTo(mapInstance)
+        })
 
-        // base.appendChild(icon)
-        // el.appendChild(base)
-
-        new maplibregl.Marker({element: el, anchor: 'bottom'})
-          .setLngLat([stop.longitude, stop.latitude])
-          .setPopup(new maplibregl.Popup().setHTML(`<h3>${stop.type_new}</h3>`))
-          .addTo(mapInstance)
-      })
-
+      }
     }
 
-  }, [mapInstance, trips, stops, loadingstops]);
+  }, [mapInstance, trips, stops, loadingstops, currentPosition]);
 
   const getMarkerIcon = (type) => {
     // Return the icon based on the type
@@ -225,7 +165,7 @@ const ViewRoute = ({ tripId, arrivalDate }) => {
       case 'warehouse':
         return '#9370DB'
       case 'short rest':
-        return '#1E90FF'    
+        return '#1E90FF'
       default:
         return '#1E90FF'
     }
@@ -248,18 +188,101 @@ const ViewRoute = ({ tripId, arrivalDate }) => {
       case 'warehouse':
         return '#4D2A73'
       case 'short rest':
-        return '#0F4A7A'    
+        return '#0F4A7A'
       default:
         return '#0F4A7A'
     }
   }
 
+  const createPopupContent = (stop) => {
+    const container = document.createElement('div')
+    container.className = 'popup-content'
+
+    const isFuelStop = stop.type_new === 'fuel'
+
+    const arrivalTime = new Date(stop.arrival_datetime).toLocaleString()
+    const departureTime = new Date(stop.departure_datetime).toLocaleString()
+
+    const dwellTimeMinutes = stop.dwell_time
+    const dwellHours = Math.floor(dwellTimeMinutes / 3600)
+    const dwellMinutes = Math.floor((dwellTimeMinutes % 3600) / 60)
+    const dwellTimeFormatted = `${dwellHours}h ${dwellMinutes}m`
+
+    container.innerHTML = `
+      <h3>${capitalizeFirstLetter(stop.type_new)} Stop</h3>
+      <p"><strong>Arrival Time:</strong> ${arrivalTime}</p>
+      <p"><strong>Departure Time:</strong> ${departureTime}</p>
+      <p"><strong>Dwell Time:</strong> ${dwellTimeFormatted}</p>
+      <p"><strong>Miles From Last Stop:</strong> ${stop.miles_travelled.toFixed(2)} miles</p>
+      <p"><strong>Fuel Tank Before Stop:</strong> ${(stop.fuel_tank_percent_before * 100)}%</p>
+      <p"><strong>Fuel Tank After Stop:</strong> ${(stop.fuel_tank_percent_after * 100)}%</p>
+      ${isFuelStop ? `
+        <p"><strong>Location Name:</strong> ${stop.fuel_location_name}</p>
+        <p"><strong>Unit Price:</strong> $${stop.unit_price.toFixed(2)} /Gallon</p>
+        <p"><strong>Total Cost:</strong> $${stop.total_price.toFixed(2)}</p>
+        <p"><strong>Quantity:</strong> ${stop.quantity.toFixed(2)} Gallons</p>
+        <p"><strong>City:</strong> ${stop.city}</p>
+        <p"><strong>State:</strong> ${stop.state}</p>
+        ` : ''}
+      <a href="https://www.google.com/maps?q=${stop.latitude},${stop.longitude}" target="_blank">View on Google Maps</a>
+      `;
+
+    return container
+  }
+
+  const capitalizeFirstLetter = (string) => {
+    return string
+      .split(' ')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+  }
+
+  mapInstance && mapInstance.on('click', 'route-points', (e) => {
+    const coordinates = e.features[0].geometry.coordinates.slice()
+    const lng = coordinates[0]
+    const lat = coordinates[1]
+    const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lng}`
+    const arrivalTime = new Date(e.features[0].properties.timestamp).toLocaleString()
+
+    const popupContent = document.createElement('div')
+    popupContent.className = 'popup-content';
+
+    popupContent.innerHTML = `
+      <h3>GPS Data</h3>
+      <p> Timestamp: ${arrivalTime}</p>
+      <p> Latitude: ${lat.toFixed(6)}</p>
+      <p> Longitude: ${lng.toFixed(6)}</p>
+      <p> Speed: ${e.features[0].properties.speed.toFixed(2)} mph</p>
+      <p> Mileage: ${e.features[0].properties.mileage.toFixed(2)} miles/gallon</p>
+      <a href="${googleMapsUrl}" target="_blank">View on Google Maps</a>
+    `
+
+    new maplibregl.Popup()
+      .setLngLat(coordinates)
+      .setDOMContent(popupContent)
+      .addTo(mapInstance)
+
+  })
+
+  mapInstance && mapInstance.on('mouseenter', 'route-points', () => {
+    mapInstance.getCanvas().style.cursor = 'pointer'
+  })
+
+  mapInstance && mapInstance.on('mouseleave', 'route-points', () => {
+    mapInstance.getCanvas().style.cursor = ''
+  })
+
+  mapInstance && mapInstance.on('mouseenter', 'custom-marks', () => {
+    mapInstance.getCanvas().style.cursor = 'pointer'
+  })
+
+  mapInstance && mapInstance.on('mouseleave', 'custom-marks', () => {
+    mapInstance.getCanvas().style.cursor = ''
+  })
+
   return (
     <div className='map-wrap'>
       <div ref={mapContainerRef} className='map' />
-      <PinBase 
-              fill={'#FFA500'}
-            /> 
     </div>
   )
 }

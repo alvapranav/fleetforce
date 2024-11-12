@@ -1,7 +1,7 @@
 .map-wrap {
     position: relative;
-    width: 800px;
-    height: calc(100vh - 77px); /* calculate height of the screen minus the heading */
+    width: 60vw;
+    height: calc(100vh - 150px); /* calculate height of the screen minus the heading */
   }
   
   .map {
@@ -34,4 +34,27 @@
     /* transform: translate(-50%, 0%); */
     width: 18px;
     height: 18px;
+  }
+
+  .popup-content {
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+  }
+
+  .popup-content h3 {
+    margin: 0;
+    font-size: 14px;
+  }
+
+  .popup-content p {
+    margin: 4px 0;
+  }
+
+  .popup-content a {
+    text-decoration: none;
+    color: #1E90FF;
+  }
+
+  .popup-content a:hover {
+    text-decoration: underline;
   }
