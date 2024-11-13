@@ -1,8 +1,8 @@
 """Create tables
 
-Revision ID: a7f4b07bbf3e
+Revision ID: bdf85fa870ca
 Revises: 
-Create Date: 2024-10-28 23:28:52.419178
+Create Date: 2024-11-13 03:47:51.060665
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'a7f4b07bbf3e'
+revision: str = 'bdf85fa870ca'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -36,8 +36,8 @@ def upgrade() -> None:
     op.create_index(op.f('ix_places_latitude'), 'places', ['latitude'], unique=False)
     op.create_index(op.f('ix_places_longitude'), 'places', ['longitude'], unique=False)
     op.create_table('stops',
-    sa.Column('tractor_id', sa.Integer(), nullable=False),
-    sa.Column('trip_id', sa.Integer(), nullable=False),
+    sa.Column('tractor_id', sa.String(), nullable=False),
+    sa.Column('trip_id', sa.String(), nullable=False),
     sa.Column('stop_type', sa.String(), nullable=False),
     sa.Column('latitude', sa.Float(), nullable=True),
     sa.Column('longitude', sa.Float(), nullable=True),
@@ -63,6 +63,7 @@ def upgrade() -> None:
     sa.Column('nearest1_highway', sa.String(), nullable=True),
     sa.Column('nearest1_latitude', sa.Float(), nullable=True),
     sa.Column('nearest1_longitude', sa.Float(), nullable=True),
+    sa.Column('nearest1_geometry', sa.String(), nullable=True),
     sa.Column('nearest2_name', sa.String(), nullable=True),
     sa.Column('nearest2_amenity', sa.String(), nullable=True),
     sa.Column('nearest2_building', sa.String(), nullable=True),
@@ -70,6 +71,7 @@ def upgrade() -> None:
     sa.Column('nearest2_highway', sa.String(), nullable=True),
     sa.Column('nearest2_latitude', sa.Float(), nullable=True),
     sa.Column('nearest2_longitude', sa.Float(), nullable=True),
+    sa.Column('nearest2_geometry', sa.String(), nullable=True),
     sa.Column('nearest3_name', sa.String(), nullable=True),
     sa.Column('nearest3_amenity', sa.String(), nullable=True),
     sa.Column('nearest3_building', sa.String(), nullable=True),
@@ -77,6 +79,7 @@ def upgrade() -> None:
     sa.Column('nearest3_highway', sa.String(), nullable=True),
     sa.Column('nearest3_latitude', sa.Float(), nullable=True),
     sa.Column('nearest3_longitude', sa.Float(), nullable=True),
+    sa.Column('nearest3_geometry', sa.String(), nullable=True),
     sa.Column('nearest4_name', sa.String(), nullable=True),
     sa.Column('nearest4_amenity', sa.String(), nullable=True),
     sa.Column('nearest4_building', sa.String(), nullable=True),
@@ -84,6 +87,7 @@ def upgrade() -> None:
     sa.Column('nearest4_highway', sa.String(), nullable=True),
     sa.Column('nearest4_latitude', sa.Float(), nullable=True),
     sa.Column('nearest4_longitude', sa.Float(), nullable=True),
+    sa.Column('nearest4_geometry', sa.String(), nullable=True),
     sa.Column('nearest5_name', sa.String(), nullable=True),
     sa.Column('nearest5_amenity', sa.String(), nullable=True),
     sa.Column('nearest5_building', sa.String(), nullable=True),
@@ -91,6 +95,7 @@ def upgrade() -> None:
     sa.Column('nearest5_highway', sa.String(), nullable=True),
     sa.Column('nearest5_latitude', sa.Float(), nullable=True),
     sa.Column('nearest5_longitude', sa.Float(), nullable=True),
+    sa.Column('nearest5_geometry', sa.String(), nullable=True),
     sa.Column('type_new', sa.String(), nullable=True),
     sa.Column('near_mechanic', sa.Integer(), nullable=True),
     sa.PrimaryKeyConstraint('tractor_id', 'trip_id', 'stop_type', 'arrival_datetime')
@@ -100,8 +105,8 @@ def upgrade() -> None:
     op.create_index(op.f('ix_stops_tractor_id'), 'stops', ['tractor_id'], unique=False)
     op.create_index(op.f('ix_stops_trip_id'), 'stops', ['trip_id'], unique=False)
     op.create_table('trips',
-    sa.Column('tractor_id', sa.Integer(), nullable=False),
-    sa.Column('trip_id', sa.Integer(), nullable=False),
+    sa.Column('tractor_id', sa.String(), nullable=False),
+    sa.Column('trip_id', sa.String(), nullable=False),
     sa.Column('country', sa.String(), nullable=True),
     sa.Column('state', sa.String(), nullable=True),
     sa.Column('city', sa.String(), nullable=True),
