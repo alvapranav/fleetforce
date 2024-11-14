@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { Box, Grid2, Typography } from '@mui/material'
+// import { Box, Grid2, Typography } from '@mui/material'
 import maplibregl from 'maplibre-gl'
 import axios from 'axios'
 import { ViewMetric, ViewRoute, PlaybackControls, MapControls } from '../../components'
@@ -15,6 +15,10 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
     const [toArrivalDate, setToArrivalDate] = useState('')
     const [loadingtrips, setLoadingTrips] = useState(true)
     const [loadingstops, setLoadingStops] = useState(true)
+    const [routeGeoJson, setRouteGeoJson] = useState(null)
+    const [processedGPSData, setProcessedGPSData] = useState([])
+    const [totalDrivePoints, setTotalDrivePoints] = useState(0)
+    const [stopIndices, setStopIndices] = useState([])
     const [currentPosition, setCurrentPosition] = useState(0)
     const [mapStyle, setMapStyle] = useState('https://api.maptiler.com/maps/basic-v2/style.json?key=oGOTJkyBZPxrLa145LN6')
     const [examineStop, setExamineStop] = useState(false)
@@ -87,6 +91,80 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
 
     }, [mapInstance, tripId, arrivalDate, trips, loadingtrips, toArrivalDate]);
 
+    useEffect(() => {
+        // if (!mapInstance || loadingstops) return;
+
+        if (!loadingstops && stops.length > 0) {
+
+            // if (currentPosition === 0) {
+
+            var gpsData = trips.gps
+            gpsData = JSON.parse(gpsData)
+
+            const processedData = processGPSData({ gpsData, stops })
+            setProcessedGPSData(processedData.processedGPSData)
+            setStopIndices(processedData.stopIndices)
+            setTotalDrivePoints(processedData.processedGPSData.length)
+
+            // Add route layer
+            setRouteGeoJson({
+                type: 'FeatureCollection',
+                features: gpsData.map((point) => ({
+                    type: 'Feature',
+                    geometry: {
+                        type: 'Point',
+                        coordinates: [point.Longitude_gps, point.Latitude_gps],
+                    },
+                    properties: {
+                        timestamp: point.Dt,
+                        speed: point.speed,
+                        mileage: point.mileage,
+                    },
+                })),
+            })
+        }
+    }, [trips, stops, loadingstops]);
+
+    const processGPSData = ({ gpsData, stops }) => {
+        const processedGPSData = [];
+        const stopIndices = [];
+
+        let cumulativeDistance = 0
+
+        gpsData.map((point) => {
+            if (point.type === 'drive') {
+                processedGPSData.push({
+                    lat: point.Latitude_gps,
+                    long: point.Longitude_gps,
+                    time: point.Dt,
+                    fuel: point['Tank Level Percent'],
+                    dist: point.dist_prev
+                })
+            } else {
+                const stop = stops.find((stop) => stop.departure_datetime === point.Dt)
+                cumulativeDistance += point.dist_prev
+
+                if (stop) {
+                    const stopPoint = {
+                        lat: stop.latitude,
+                        long: stop.longitude,
+                        time: point.Dt,
+                        fuel: stop.fuel_tank_percent_after,
+                        dist: cumulativeDistance
+                    }
+                    cumulativeDistance = 0
+
+                    stopIndices.push(processedGPSData.length)
+                    processedGPSData.push(stopPoint)
+
+                }
+            }
+        })
+
+        return { processedGPSData, stopIndices }
+
+    }
+
     const handlePositionChange = (position) => {
         setCurrentPosition(position)
     }
@@ -115,8 +193,7 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
                     mapContainerRef={mapContainerRef}
                     mapInstance={mapInstance}
                     stops={stops}
-                    trips={trips}
-                    loadingstops={loadingstops}
+                    routeGeoJson={routeGeoJson}
                     currentPosition={currentPosition}
                     mapStyle={mapStyle}
                 />
@@ -128,8 +205,9 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
             </div>
             <div className="bottom-row">
                 <PlaybackControls
-                    stops={stops}
+                    totalDrivePoints={totalDrivePoints}
                     onPositionChange={handlePositionChange}
+                    stopIndices={stopIndices}
                 />
                 <MapControls
                     stops={stops}

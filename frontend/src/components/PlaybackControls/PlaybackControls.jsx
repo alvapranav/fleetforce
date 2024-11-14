@@ -1,72 +1,93 @@
 import React, { useState, useEffect } from 'react'
 import { IconButton, Slider } from '@mui/material'
 import { PlayArrow, Pause, SkipNext, SkipPrevious, Replay } from '@mui/icons-material'
+import './PlaybackControls.css'
 
-const PlaybackControls = ({ stops, onPositionChange }) => {
+const PlaybackControls = ({ totalDrivePoints, onPositionChange, stopIndices }) => {
   const [position, setPosition] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
-  const [intervalId, setIntervalId] = useState(null)
-
-  const totalStops = stops.length
+  const [percentage, setPercentage] = useState('0.00')
 
   useEffect(() => {
-    let animationFrame
-
-    if (isPlaying) {
-      const animate = () => {
-        setPosition((prev) => {
-          if (prev + 1 > totalStops) {
-            setIsPlaying(false)
-            return prev
-          }
-          return prev + 1
-        })
-        animationFrame = setTimeout(animate, 2000)
-      }
-      animate()
-
-      return () => clearTimeout(animationFrame)
-    }
-  }, [isPlaying])
-
-  useEffect(() => {
+    const newPercentage = ((position / (totalDrivePoints - 1)) * 100).toFixed(2)
+    setPercentage(newPercentage)
     onPositionChange(position)
   }, [position])
 
-  const handleSliderChange = (event, newValue) => {
-    setPosition(newValue)
+  const handleSliderChange = (event, value) => {
+    const newPosition = Math.round((value / 100) * (totalDrivePoints - 1))
+    setPosition(newPosition)
+  }
+
+  const handlePlayPause = () => {
+    setIsPlaying(!isPlaying)
   }
 
   const handleNext = () => {
-    setPosition((prev) => Math.min(prev + 1, totalStops))
+    const nextStopPosition = stopIndices.find((index) => index > position)
+    if (nextStopPosition !== undefined) {
+      setPosition(nextStopPosition)
+    } else {
+      setPosition(totalDrivePoints - 1)
+    }
   }
-  // const closestStop = position [Implement this function]
 
-  return (
-    <div className='playback-controls'>
-      <div className='buttons'>
-        <IconButton onClick={() => setPosition((p) => Math.max(p - 1, 0))}>
-          <SkipPrevious />
-        </IconButton>
-        <IconButton onClick={() => setIsPlaying(!isPlaying)}>
-          {isPlaying ? <Pause /> : <PlayArrow />}
-        </IconButton>
-        <IconButton onClick={() => setPosition((p) => Math.min(p + 1, totalStops))}>
-          <SkipNext />
-        </IconButton>
-        <IconButton onClick={() => setPosition(0)}>
-          <Replay />
-        </IconButton>
+  const handlePrevious = () => {
+    const previousStops = stopIndices.filter((index) => index < position)
+    const previousStopPosition = previousStops[previousStops.length - 1]
+    if (previousStopPosition !== undefined) {
+      setPosition(previousStopPosition)
+    } else {
+      setPosition(0)
+    }
+  }
+
+    useEffect(() => {
+      let intervalId
+      if (isPlaying) {
+        intervalId = setInterval(() => {
+          setPosition((prev) => {
+            if (prev < totalDrivePoints - 1) {
+              return prev + 1
+            } else {
+              setIsPlaying(false)
+              return prev
+            }
+          })
+        }, 10) // 100ms Adjust this value to change playback speed
+      }
+      return () => clearInterval(intervalId)
+    }, [isPlaying])
+
+    return (
+      <div className='playback-controls'>
+        <div className='buttons'>
+          <IconButton onClick={handlePrevious}>
+            <SkipPrevious />
+          </IconButton>
+          <IconButton onClick={handlePlayPause}>
+            {isPlaying ? <Pause /> : <PlayArrow />}
+          </IconButton>
+          <IconButton onClick={handleNext}>
+            <SkipNext />
+          </IconButton>
+          <IconButton onClick={() => setPosition(0)}>
+            <Replay />
+          </IconButton>
         </div>
-        <Slider
-          value={position}
-          onChange={(e, val) => setPosition(val)}
-          min={0}
-          max={totalStops}
-          valueLabelDisplay='auto'
-        />
-    </div>
-      )
-}
+        <div className='slider'>
+          <Slider
+            value={parseFloat(percentage)}
+            onChange={handleSliderChange}
+            min={0}
+            max={100}
+            step={0.01}
+            valueLabelDisplay='auto'
+          />
+          <span style={{ marginLeft: '20px', marginRight: '20px'}}>{percentage}%</span>
+        </div>
+      </div>
+    )
+  }
 
-      export default PlaybackControls
+  export default PlaybackControls

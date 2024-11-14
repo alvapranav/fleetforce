@@ -1,0 +1,16 @@
+.playback-controls {
+    width: 60vw;
+}
+
+.buttons{
+    display: flex;
+    margin-left: 30%;
+    margin-right: 30%;
+    justify-content: space-around;
+}
+
+.slider{
+    display: flex;
+    margin-left: 10%;
+    margin-right: 10%;
+}

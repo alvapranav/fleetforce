@@ -6,40 +6,9 @@ import './ViewRoute.css'
 import { icons } from '../../constants'
 import PinBase from '../../assets/location-pin-solid'
 
-const ViewRoute = ({ mapContainerRef, mapInstance, stops, trips, loadingstops, currentPosition, mapStyle }) => {
-  const [routeGeoJson, setRouteGeoJson] = useState(null)
+const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentPosition, mapStyle }) => {
   const layersRef = useRef([])
   const markersRef = useRef([])
-
-  useEffect(() => {
-    // if (!mapInstance || loadingstops) return;
-
-    if (!loadingstops && stops.length > 0) {
-
-      // if (currentPosition === 0) {
-
-      var gpsData = trips.gps
-      gpsData = JSON.parse(gpsData)
-
-      // Add route layer
-      setRouteGeoJson({
-        type: 'FeatureCollection',
-        features: gpsData.map((point) => ({
-          type: 'Feature',
-          geometry: {
-            type: 'Point',
-            coordinates: [point.Longitude_gps, point.Latitude_gps],
-          },
-          properties: {
-            timestamp: point.Dt,
-            speed: point.speed,
-            mileage: point.mileage,
-          },
-        })),
-      })
-
-    }
-  }, [trips, stops, loadingstops]);
 
   useEffect(() => {
     if (!mapInstance || !routeGeoJson) return;

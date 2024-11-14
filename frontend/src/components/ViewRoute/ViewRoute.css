@@ -1,7 +1,7 @@
 .map-wrap {
     position: relative;
     width: 60vw;
-    height: calc(100vh - 150px); /* calculate height of the screen minus the heading */
+    height: 80vh;
   }
   
   .map {
@@ -19,8 +19,6 @@
   .pin-base {
     position: absolute;
     bottom: 0;
-    /* left: 50%; */
-    /* transform: translate(-50%, 0%); */
     width: 30px;
     height: 42px;
     background-size: cover;
@@ -31,7 +29,6 @@
     position: absolute;
     top: 6px;
     left: 20%;
-    /* transform: translate(-50%, 0%); */
     width: 18px;
     height: 18px;
   }
