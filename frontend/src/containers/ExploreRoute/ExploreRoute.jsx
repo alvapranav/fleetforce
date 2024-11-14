@@ -16,13 +16,12 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
     const [loadingtrips, setLoadingTrips] = useState(true)
     const [loadingstops, setLoadingStops] = useState(true)
     const [routeGeoJson, setRouteGeoJson] = useState(null)
-    const [processedGPSData, setProcessedGPSData] = useState([])
+    const [drivePoints, setDrivePoints] = useState([])
     const [totalDrivePoints, setTotalDrivePoints] = useState(0)
     const [stopIndices, setStopIndices] = useState([])
     const [currentPosition, setCurrentPosition] = useState(0)
     const [mapStyle, setMapStyle] = useState('https://api.maptiler.com/maps/basic-v2/style.json?key=oGOTJkyBZPxrLa145LN6')
     const [examineStop, setExamineStop] = useState(false)
-    const [truckMarker, setTruckMarker] = useState(null)
 
     useEffect(() => {
         if (map.current) return;
@@ -102,9 +101,9 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
             gpsData = JSON.parse(gpsData)
 
             const processedData = processGPSData({ gpsData, stops })
-            setProcessedGPSData(processedData.processedGPSData)
+            setDrivePoints(processedData.drivePoints)
             setStopIndices(processedData.stopIndices)
-            setTotalDrivePoints(processedData.processedGPSData.length)
+            setTotalDrivePoints(processedData.drivePoints.length)
 
             // Add route layer
             setRouteGeoJson({
@@ -126,14 +125,14 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
     }, [trips, stops, loadingstops]);
 
     const processGPSData = ({ gpsData, stops }) => {
-        const processedGPSData = [];
+        const drivePoints = [];
         const stopIndices = [];
 
         let cumulativeDistance = 0
 
         gpsData.map((point) => {
             if (point.type === 'drive') {
-                processedGPSData.push({
+                drivePoints.push({
                     lat: point.Latitude_gps,
                     long: point.Longitude_gps,
                     time: point.Dt,
@@ -154,14 +153,14 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
                     }
                     cumulativeDistance = 0
 
-                    stopIndices.push(processedGPSData.length)
-                    processedGPSData.push(stopPoint)
+                    stopIndices.push(drivePoints.length)
+                    drivePoints.push(stopPoint)
 
                 }
             }
         })
 
-        return { processedGPSData, stopIndices }
+        return { drivePoints, stopIndices }
 
     }
 
@@ -196,6 +195,7 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
                     routeGeoJson={routeGeoJson}
                     currentPosition={currentPosition}
                     mapStyle={mapStyle}
+                    drivePoints={drivePoints}
                 />
                 <ViewMetric
                     trips={trips}

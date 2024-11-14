@@ -7,6 +7,7 @@ import Meal from '../assets/utensils-solid.jsx';
 import Warehouse from '../assets/warehouse-solid.jsx';
 import GasPump from '../assets/gas-pump-solid.jsx';
 import Home from '../assets/house-solid.jsx';
+import Truck from '../assets/truck-front-solid.svg';
 
 const icons = {
     Flag,
@@ -17,7 +18,8 @@ const icons = {
     Meal,
     Warehouse,
     GasPump,
-    Home
+    Home,
+    Truck
 }
 
 export default icons;

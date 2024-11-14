@@ -6,14 +6,14 @@ import './ViewRoute.css'
 import { icons } from '../../constants'
 import PinBase from '../../assets/location-pin-solid'
 
-const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentPosition, mapStyle }) => {
+const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentPosition, mapStyle, drivePoints }) => {
   const layersRef = useRef([])
   const markersRef = useRef([])
+  const [truckMarker, setTruckMarker] = useState(null)
 
   useEffect(() => {
     if (!mapInstance || !routeGeoJson) return;
 
-    if (currentPosition === 0) {
       const speedStops = [
         [0, 'red'],
         [30, 'orange'],
@@ -54,7 +54,7 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
           return bounds.extend(feature.geometry.coordinates)
         }, new maplibregl.LngLatBounds(routeGeoJson.features[0].geometry.coordinates, routeGeoJson.features[0].geometry.coordinates))
 
-        mapInstance.fitBounds(bounds, { padding: 20 })
+        mapInstance.fitBounds(bounds, { padding: 60 })
 
       })
 
@@ -97,9 +97,23 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
         markersRef.current.push(marker)
       })
 
+      const point = drivePoints[currentPosition]
+      const latitude = point.lat
+      const longitude = point.long
 
-    }
-  }, [routeGeoJson, currentPosition]);
+      const el = document.createElement('div')
+      el.className = 'truck-marker'
+      el.style.transform = 'rotate(0deg)'
+      el.style.width = '20px'
+      el.style.height = '20px'
+      el.innerHTML = `<img src=${icons.Truck} alt='truck' />`
+
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat([longitude, latitude])
+        .addTo(mapInstance)
+      setTruckMarker(marker)
+
+  }, [routeGeoJson]);
 
   useEffect(() => {
     if (!mapInstance || !routeGeoJson) return;
@@ -278,13 +292,41 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
     mapInstance.getCanvas().style.cursor = ''
   })
 
-  mapInstance && mapInstance.on('mouseenter', 'custom-marks', () => {
-    mapInstance.getCanvas().style.cursor = 'pointer'
-  })
+  useEffect(() => {
+    if (!mapInstance || !drivePoints[currentPosition]) return;
 
-  mapInstance && mapInstance.on('mouseleave', 'custom-marks', () => {
-    mapInstance.getCanvas().style.cursor = ''
-  })
+    const point = drivePoints[currentPosition]
+    const latitude = point.lat
+    const longitude = point.long
+
+    if (!truckMarker) {
+      const el = document.createElement('div')
+      el.className = 'truck-marker'
+      el.style.transform = 'rotate(0deg)'
+      el.style.width = '30px'
+      el.style.height = '30px'
+      el.innerHTML = `<img src=${icons.Truck} alt='truck' />`
+
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat([longitude, latitude])
+        .addTo(mapInstance)
+      setTruckMarker(marker)
+    } else {
+      truckMarker.setLngLat([longitude, latitude])
+    }
+
+    if (currentPosition > 0) {
+      mapInstance.panTo([longitude, latitude], { duration: 200 })
+      // mapInstance.easeTo({center: [longitude, latitude], duration: 600, easing: (t) => t * (2 - t)})
+    } else {
+      const bounds = routeGeoJson.features.reduce((bounds, feature) => {
+        return bounds.extend(feature.geometry.coordinates)
+      }, new maplibregl.LngLatBounds(routeGeoJson.features[0].geometry.coordinates, routeGeoJson.features[0].geometry.coordinates))
+
+      mapInstance.fitBounds(bounds, { padding: 60 })
+    }
+
+  }, [currentPosition])
 
   return (
     <div className='map-wrap'>
