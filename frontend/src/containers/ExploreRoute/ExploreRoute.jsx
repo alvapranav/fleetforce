@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react'
 // import { Box, Grid2, Typography } from '@mui/material'
 import maplibregl from 'maplibre-gl'
 import axios from 'axios'
+import wellknown from 'wellknown'
 import { ViewMetric, ViewRoute, PlaybackControls, MapControls } from '../../components'
 import './ExploreRoute.css'
 
@@ -22,6 +23,8 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
     const [currentPosition, setCurrentPosition] = useState(0)
     const [mapStyle, setMapStyle] = useState('https://api.maptiler.com/maps/basic-v2/style.json?key=oGOTJkyBZPxrLa145LN6')
     const [examineStop, setExamineStop] = useState(false)
+    const [isAtStop, setIsAtStop] = useState(true)
+    const [unitTank, setUnitTank] = useState(null)
 
     useEffect(() => {
         if (map.current) return;
@@ -71,7 +74,8 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
                 setLoadingStops(true)
 
                 const endDate = trips.to_arrival_datetime
-                setToArrivalDate(endDate);
+                setToArrivalDate(endDate)
+                setUnitTank(trips.unit_tank)
 
                 const response = await axios.get(`/api/stops/${tripId}/${arrivalDate}/${toArrivalDate}`)
                 const stopsData = response.data
@@ -118,6 +122,7 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
                         timestamp: point.Dt,
                         speed: point.speed,
                         mileage: point.mileage,
+                        fuel: point['Tank Level Percent'],
                     },
                 })),
             })
@@ -168,6 +173,10 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
         setCurrentPosition(position)
     }
 
+    useEffect(() => {
+        setIsAtStop(stopIndices.includes(currentPosition))
+    }, [currentPosition, stopIndices])
+
     const handleChangeMapStyle = (style) => {
         setMapStyle(style)
         mapInstance.setStyle(style)
@@ -176,14 +185,142 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
     const handleToggleHeatMap = () => {
     }
 
-    const handleExamineStop = () => {
-        setExamineStop(!examineStop)
+    const removeOldPOIs = () => {
+        mapInstance.getStyle().layers.forEach((layer) => {
+            if (layer.id.includes('poi-layer')) {
+                mapInstance.removeLayer(layer.id)
+            }
+        })
+        Object.keys(mapInstance.style.sourceCaches).forEach((source) => {
+            if (source.includes('poi-source')) {
+                mapInstance.removeSource(source)
+            }
+        })
     }
+
+    const handleExamineStop = () => {
+        if (examineStop) {
+            removeOldPOIs()
+            mapInstance.flyTo({
+                center: [drivePoints[currentPosition].long, drivePoints[currentPosition].lat],
+                zoom: 8,
+            })
+            setExamineStop(!examineStop)
+        } else {
+            const stopPoint = stops[stopIndices.findIndex((index) => index === currentPosition)]
+            if (stopPoint) {
+                mapInstance.flyTo({
+                    center: [stopPoint.longitude, stopPoint.latitude],
+                    zoom: 16,
+                })
+
+                displayPlacesOfInterest(stopPoint)
+            }
+            setExamineStop(!examineStop)
+        }
+    }
+
+    const parseGeometry = (geometryString) => {
+        try {
+            const geoJSON = wellknown.parse(geometryString)
+
+            if (!geoJSON) {
+                throw new Error('Invalid geometry')
+            }
+
+            return geoJSON
+        } catch {
+            console.error('Error parsing geometry:', geometryString)
+            return null
+        }
+    }
+
+    const getColorByIndex = (index) => {
+        const colors = [
+            '#FF0000',
+            '#00FF00',
+            '#0000FF',
+            '#FFFF00',
+            '#FF00FF',
+        ]
+
+        return colors[index]
+    }
+
+    const displayPlacesOfInterest = (poiDictionary) => {
+        const places = []
+
+        for (let i = 1; i <= 5; i++) {
+            const place_name = poiDictionary[`nearest${i}_name`]
+            const amenity = poiDictionary[`nearest${i}_amenity`]
+            const building = poiDictionary[`nearest${i}_building`]
+            const shop = poiDictionary[`nearest${i}_shop`]
+            const highway = poiDictionary[`nearest${i}_highway`]
+            const geometry = poiDictionary[`nearest${i}_geometry`]
+            const latitude = poiDictionary[`nearest${i}_latitude`]
+            const longitude = poiDictionary[`nearest${i}_longitude`]
+
+
+            if (!geometry) continue
+
+            places.push({
+                latitude: latitude,
+                longitude: longitude,
+                placeName: place_name,
+                amenityType: amenity,
+                buildingType: building,
+                shopType: shop,
+                highwayType: highway,
+                geometry: geometry
+            })
+        }
+
+        places.forEach((poi, index) => {
+            const geometry = parseGeometry(poi.geometry)
+            const color = getColorByIndex(index)
+
+            const sourceId = `poi-source-${index}`
+            const layerId = `poi-layer-${index}`
+
+            if (!mapInstance.getSource(sourceId)) {
+                mapInstance.addSource(sourceId, {
+                    type: 'geojson',
+                    data: geometry
+                })
+
+                mapInstance.addLayer({
+                    id: layerId,
+                    type: 'fill',
+                    source: sourceId,
+                    paint: {
+                        'fill-color': color,
+                        'fill-opacity': 0.5
+                    }
+                })
+
+                mapInstance.on('click', layerId, () => {
+                    new maplibregl.Popup()
+                        .setLngLat([poi.longitude, poi.latitude])
+                        .setHTML(
+                            `<strong>Name:</strong> ${poi.placeName || 'Unknown'}<br>
+                        <strong>Amenity:</strong> ${poi.amenityType || 'N/A'}<br>
+                        <strong>Building:</strong> ${poi.buildingType || 'N/A'}<br>
+                        <strong>Shop:</strong> ${poi.shopType || 'N/A'}<br>
+                        <strong>Highway:</strong> ${poi.highwayType || 'N/A'}
+                        `
+                        )
+                        .addTo(mapInstance)
+                })
+            }
+        })
+
+    }
+
 
     return (
         <div className="explore-route">
             {stops.length > 0 ? (
-                <h1>Trip ID: {tripId} &emsp;Tractor ID: {stops[0].tractor_id}</h1>
+                <h1 className='heading'>Trip ID: {tripId} &emsp;Tractor ID: {stops[0].tractor_id}</h1>
             ) : (
                 <h1>Loading...</h1>
             )}
@@ -196,11 +333,15 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
                     currentPosition={currentPosition}
                     mapStyle={mapStyle}
                     drivePoints={drivePoints}
+                    examineStop={examineStop}
                 />
                 <ViewMetric
-                    trips={trips}
-                    stops={stops}
                     currentPosition={currentPosition}
+                    drivePoints={drivePoints}
+                    unitTank={unitTank}
+                    stops = {stops}
+                    stopIndices = {stopIndices}
+                    isAtStop={isAtStop}
                 />
             </div>
             <div className="bottom-row">
@@ -213,6 +354,7 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
                     stops={stops}
                     onChangeMapStyle={handleChangeMapStyle}
                     onExamineStop={handleExamineStop}
+                    isAtStop={isAtStop}
                     onToggleHeatMap={handleToggleHeatMap}
                 />
             </div>

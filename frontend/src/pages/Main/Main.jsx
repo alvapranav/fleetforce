@@ -4,7 +4,7 @@ import { ExploreRoute } from "../../containers";
 const Main = () => {
   return (
     <div className="app">
-        <ExploreRoute tripId='A383525 01' arrivalDate='2024-07-02 16:48:04'/>
+        <ExploreRoute tripId='A376243 02' arrivalDate='2024-07-01 15:08:06'/>
     </div>
   );
 }

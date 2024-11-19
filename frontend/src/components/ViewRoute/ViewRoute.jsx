@@ -6,7 +6,7 @@ import './ViewRoute.css'
 import { icons } from '../../constants'
 import PinBase from '../../assets/location-pin-solid'
 
-const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentPosition, mapStyle, drivePoints }) => {
+const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentPosition, mapStyle, drivePoints, examineStops }) => {
   const layersRef = useRef([])
   const markersRef = useRef([])
   const [truckMarker, setTruckMarker] = useState(null)
@@ -239,7 +239,7 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
       ${isFuelStop ? `
         <p"><strong>Location Name:</strong> ${stop.fuel_location_name}</p>
         <p"><strong>Unit Price:</strong> $${stop.unit_price.toFixed(2)} /Gallon</p>
-        <p"><strong>Total Cost:</strong> $${stop.total_price.toFixed(2)}</p>
+        <p"><strong>Total Cost:</strong> $${stop.total_cost.toFixed(2)}</p>
         <p"><strong>Quantity:</strong> ${stop.quantity.toFixed(2)} Gallons</p>
         <p"><strong>City:</strong> ${stop.city}</p>
         <p"><strong>State:</strong> ${stop.state}</p>
@@ -274,6 +274,7 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
       <p> Longitude: ${lng.toFixed(6)}</p>
       <p> Speed: ${e.features[0].properties.speed.toFixed(2)} mph</p>
       <p> Mileage: ${e.features[0].properties.mileage.toFixed(2)} miles/gallon</p>
+      <p> Fuel: ${e.features[0].properties.fuel.toFixed(2)}%</p>
       <a href="${googleMapsUrl}" target="_blank">View on Google Maps</a>
     `
 
@@ -316,7 +317,7 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
     }
 
     if (currentPosition > 0) {
-      mapInstance.panTo([longitude, latitude], { duration: 200 })
+      mapInstance.panTo([longitude, latitude], { duration: 100, easing: (t) => t * (2 - t) })
       // mapInstance.easeTo({center: [longitude, latitude], duration: 600, easing: (t) => t * (2 - t)})
     } else {
       const bounds = routeGeoJson.features.reduce((bounds, feature) => {
@@ -326,7 +327,7 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
       mapInstance.fitBounds(bounds, { padding: 60 })
     }
 
-  }, [currentPosition])
+  }, [currentPosition, examineStops])
 
   return (
     <div className='map-wrap'>

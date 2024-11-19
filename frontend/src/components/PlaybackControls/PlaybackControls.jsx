@@ -59,6 +59,18 @@ const PlaybackControls = ({ totalDrivePoints, onPositionChange, stopIndices }) =
       return () => clearInterval(intervalId)
     }, [isPlaying])
 
+    useEffect(() => {
+      if (!isPlaying) return
+    
+      if(stopIndices.includes(position)) {
+        setIsPlaying(false)
+        const timeoutId = setTimeout(() => {
+          setIsPlaying(true)
+        }, 500) // 1s Adjust this value to change stop duration
+        return () => clearTimeout(timeoutId)
+      }
+    }, [position])
+
     return (
       <div className='playback-controls'>
         <div className='buttons'>

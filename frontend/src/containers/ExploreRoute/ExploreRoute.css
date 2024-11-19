@@ -1,9 +1,15 @@
+.heading{
+    margin-left: 40px;
+}
+
 .top-row{
     display: flex;
     gap: 10px;
+    margin-left: 40px;
 }
 
 .bottom-row{
     display: flex;
     gap: 10px;
+    margin-left: 40px;
 }
