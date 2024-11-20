@@ -3,7 +3,7 @@ import { IconButton, Slider } from '@mui/material'
 import { PlayArrow, Pause, SkipNext, SkipPrevious, Replay } from '@mui/icons-material'
 import './PlaybackControls.css'
 
-const PlaybackControls = ({ totalDrivePoints, onPositionChange, stopIndices }) => {
+const PlaybackControls = ({ totalDrivePoints, onPositionChange, stopIndices, animationSpeed }) => {
   const [position, setPosition] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [percentage, setPercentage] = useState('0.00')
@@ -54,10 +54,10 @@ const PlaybackControls = ({ totalDrivePoints, onPositionChange, stopIndices }) =
               return prev
             }
           })
-        }, 10) // 100ms Adjust this value to change playback speed
+        }, 10 / animationSpeed) // 100ms Adjust this value to change playback speed
       }
       return () => clearInterval(intervalId)
-    }, [isPlaying])
+    }, [isPlaying, animationSpeed])
 
     useEffect(() => {
       if (!isPlaying) return
@@ -66,7 +66,7 @@ const PlaybackControls = ({ totalDrivePoints, onPositionChange, stopIndices }) =
         setIsPlaying(false)
         const timeoutId = setTimeout(() => {
           setIsPlaying(true)
-        }, 500) // 1s Adjust this value to change stop duration
+        }, 500 / animationSpeed) // 1s Adjust this value to change stop duration
         return () => clearTimeout(timeoutId)
       }
     }, [position])

@@ -25,6 +25,7 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
     const [examineStop, setExamineStop] = useState(false)
     const [isAtStop, setIsAtStop] = useState(true)
     const [unitTank, setUnitTank] = useState(null)
+    const [animationSpeed, setAnimationSpeed] = useState(1)
 
     useEffect(() => {
         if (map.current) return;
@@ -349,6 +350,7 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
                     totalDrivePoints={totalDrivePoints}
                     onPositionChange={handlePositionChange}
                     stopIndices={stopIndices}
+                    animationSpeed={animationSpeed}
                 />
                 <MapControls
                     stops={stops}
@@ -356,6 +358,8 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
                     onExamineStop={handleExamineStop}
                     isAtStop={isAtStop}
                     onToggleHeatMap={handleToggleHeatMap}
+                    animationSpeed={animationSpeed}
+                    onAnimationSpeedChange={setAnimationSpeed}
                 />
             </div>
         </div>

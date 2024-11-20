@@ -234,8 +234,8 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
       <p"><strong>Departure Time:</strong> ${departureTime}</p>
       <p"><strong>Dwell Time:</strong> ${dwellTimeFormatted}</p>
       <p"><strong>Miles From Last Stop:</strong> ${stop.miles_travelled.toFixed(2)} miles</p>
-      <p"><strong>Fuel Tank Before Stop:</strong> ${(stop.fuel_tank_percent_before * 100)}%</p>
-      <p"><strong>Fuel Tank After Stop:</strong> ${(stop.fuel_tank_percent_after * 100)}%</p>
+      <p"><strong>Fuel Tank Before Stop:</strong> ${(stop.fuel_tank_percent_before * 100).toFixed(2)}%</p>
+      <p"><strong>Fuel Tank After Stop:</strong> ${(stop.fuel_tank_percent_after * 100).toFixed(2)}%</p>
       ${isFuelStop ? `
         <p"><strong>Location Name:</strong> ${stop.fuel_location_name}</p>
         <p"><strong>Unit Price:</strong> $${stop.unit_price.toFixed(2)} /Gallon</p>

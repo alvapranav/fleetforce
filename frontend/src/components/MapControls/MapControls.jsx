@@ -1,14 +1,16 @@
 import React from 'react'
-import { Select, MenuItem, Button } from '@mui/material'
+import { Select, MenuItem, Button, Slider, Typography } from '@mui/material'
 
-const MapControls = ({ onChangeMapStyle, onExamineStop, isAtStop, onToggleHeatmap }) => {
+const MapControls = ({ onChangeMapStyle, onExamineStop, isAtStop, onToggleHeatmap, onAnimationSpeedChange, animationSpeed }) => {
   return (
     <div className='map-controls'>
+      <h4 variant='h4'>Map Controls</h4>
       <Select defaultValue="https://api.maptiler.com/maps/basic-v2/style.json?key=oGOTJkyBZPxrLa145LN6" on onChange={(e) => onChangeMapStyle(e.target.value)}>
         <MenuItem value="https://api.maptiler.com/maps/basic-v2/style.json?key=oGOTJkyBZPxrLa145LN6">Basic</MenuItem>
         <MenuItem value="https://api.maptiler.com/maps/satellite/style.json?key=oGOTJkyBZPxrLa145LN6">Satellite</MenuItem>
         <MenuItem value="https://api.maptiler.com/maps/backdrop/style.json?key=oGOTJkyBZPxrLa145LN6">Backdrop</MenuItem>
       </Select>
+      <h4 variant='h4'>Heatmap</h4>
       <Select defaultValue="Speed" on onChange={(e) => onToggleHeatmap(e.target.value)}>
         <MenuItem value="Speed">Speed</MenuItem>
         <MenuItem value="Mileage">Mileage</MenuItem>
@@ -17,6 +19,16 @@ const MapControls = ({ onChangeMapStyle, onExamineStop, isAtStop, onToggleHeatma
       onClick={onExamineStop}
       disabled={!isAtStop}
       >Examine Stop</Button>
+      <h4>Animation Speed:</h4>
+      <Slider
+        value={animationSpeed}
+        min = {0.5}
+        max = {5}
+        step = {0.1}
+        onChange={(e, val) => onAnimationSpeedChange(val)}
+        valueLabelDisplay='auto'
+      />
+
     </div>
   )
 }
