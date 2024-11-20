@@ -1,3 +1,4 @@
+import { LinearProgress, Box, Typography } from '@mui/material'
 import React, { useState, useEffect } from 'react'
 
 const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices, isAtStop }) => {
@@ -30,6 +31,25 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
 
   const [isFuelStop, setIsFuelStop] = useState(false)
 
+  const getFuelBarColor = (value) => {
+    if (value > 75) {
+      return 'green'
+    }
+    if (value > 50) {
+      return 'yellow'
+    }
+    if (value > 25) {
+      return 'orange'
+    }
+    return 'red'
+  }
+
+  const formatTime = (minutes) => {
+    const hours = Math.floor(minutes / 60)
+    const mins = Math.floor(minutes % 60)
+    return `${hours}h ${mins}m`
+  }
+
   useEffect(() => {
     const calculateMetrics = () => {
       const points = drivePoints.slice(0, currentPosition + 1)
@@ -47,7 +67,7 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
 
         distanceDriven += currentPoint.dist * 0.000621371
 
-        const stopPoint = stops[stopIndices.findIndex((index) => index === i+1)]
+        const stopPoint = stops[stopIndices.findIndex((index) => index === i + 1)]
 
         if (stopPoint) {
           totalDwellTime += stopPoint.dwell_time / 60
@@ -55,7 +75,7 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
           amountSpent += stopPoint.total_cost
           if (stopPoint.type_new == 'fuel' || stopPoint.type_new == 'fuel_ext') {
             fuelConsumed += (drivePoints[fuel_index].fuel - stopPoint.fuel_tank_percent_before) * unitTank
-            fuel_index = i+1
+            fuel_index = i + 1
           }
         }
       }
@@ -69,8 +89,8 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
         const departureTime = new Date(stopPoint.departure_datetime)
         const dwellTime = stopPoint.dwell_time
         const milesFromLastStop = currentPosition === 0 ? 0 : stopPoint.miles_travelled
-        const fuelBeforeStop = stopPoint.fuel_tank_percent_before
-        const fuelAfterStop = stopPoint.fuel_tank_percent_after
+        const fuelBeforeStop = stopPoint.fuel_tank_percent_before * 100
+        const fuelAfterStop = stopPoint.fuel_tank_percent_after * 100
         if (stopPoint.type_new == 'fuel') {
           setIsFuelStop(true)
           setStopMetrics({
@@ -103,67 +123,126 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
             quantity: 0,
             city: '',
             state: '',
-                  })
+          })
         }
 
       }
 
-        setMetrics({
-          distanceDriven,
-          timeTaken: timeTaken / 60000,
-          fuelLevel: drivePoints[currentPosition].fuel,
-          totalDwellTime,
-          amountSpent,
-          fuelPurchased,
-          fuelConsumed,
-          milesPerGallon:
-            fuelConsumed > 0 && distanceDriven > 0
-              ? (distanceDriven / fuelConsumed).toFixed(2)
-              : "N/A"
-        })
+      setMetrics({
+        distanceDriven,
+        timeTaken: timeTaken / 60000,
+        fuelLevel: drivePoints[currentPosition].fuel * 100,
+        totalDwellTime,
+        amountSpent,
+        fuelPurchased,
+        fuelConsumed,
+        milesPerGallon:
+          fuelConsumed > 0 && distanceDriven > 0
+            ? (distanceDriven / fuelConsumed).toFixed(2)
+            : "N/A"
+      })
 
-      }
+    }
 
-      if (drivePoints.length > 0) {
-        calculateMetrics()
-      }
+    if (drivePoints.length > 0) {
+      calculateMetrics()
+    }
 
-    }, [currentPosition, drivePoints, stops, stopIndices, unitTank, isAtStop])
+  }, [currentPosition, drivePoints, stops, stopIndices, unitTank, isAtStop])
   return (
     <div className='view-metrics'>
       <div className='trip-metrics'>
-      <h3>Trip Metrics</h3>
-      <p>Distance Driven: {metrics.distanceDriven.toFixed(2)} miles</p>
-      <p>Time Taken: {metrics.timeTaken.toFixed(2)} minutes</p>
-      <p>Fuel Level: {metrics.fuelLevel.toFixed(2)}%</p>
-      <p>Amount Spent: ${metrics.amountSpent.toFixed(2)}</p>
-      <p> Total Dwell Time: {metrics.totalDwellTime.toFixed(2)} minutes</p>
-      <p>Fuel Purchased: {metrics.fuelPurchased.toFixed(2)} gallons</p>
-      <p>Fuel Consumed: {metrics.fuelConsumed.toFixed(2)} gallons</p>
-      <p>Miles Per Gallon: {metrics.milesPerGallon}</p>
+        <h3>Trip Metrics</h3>
+        <p>Distance Driven: {metrics.distanceDriven.toFixed(2)} miles</p>
+        <p>Time Taken: {formatTime(metrics.timeTaken)} minutes</p>
+        <p>Amount Spent: ${metrics.amountSpent.toFixed(2)}</p>
+        <p> Total Dwell Time: {formatTime(metrics.totalDwellTime)} minutes</p>
+        <p>Fuel Purchased: {metrics.fuelPurchased.toFixed(2)} gallons</p>
+        <p>Fuel Consumed: {metrics.fuelConsumed.toFixed(2)} gallons</p>
+        <p>Miles Per Gallon: {metrics.milesPerGallon}</p>
+        <p>Fuel Tank Level:</p>
+        <Box display='flex' alignItems='center'>
+          <Box width='100%' mr={1}>
+            <LinearProgress
+              variant='determinate'
+              value={metrics.fuelLevel}
+              sx={{ 
+                '& .MuiLinearProgress-bar': {
+                  backgroundColor: getFuelBarColor(metrics.fuelLevel),
+                },
+                backgroundColor: '#ddd',
+                borderRadius: '5px',
+                height: '10px'
+                }}
+            />
+          </Box>
+          <Box minWidth={35}>
+            <Typography variant="body2" color="textSecondary">{metrics.fuelLevel.toFixed(2)}%</Typography>
+          </Box>
+        </Box>
       </div>
-      {isAtStop && (
-        <div className='stop-metrics'>
-          <h3>Stop Metrics</h3>
-          <p>Arrival Time: {stopMetrics.arrivalTime.toLocaleString()}</p>
-          <p>Departure Time: {stopMetrics.departureTime.toLocaleString()}</p>
-          <p>Dwell Time: {stopMetrics.dwellTime.toFixed(2)} minutes</p>
-          <p>Miles From Last Stop: {stopMetrics.milesFromLastStop.toFixed(2)} miles</p>
-          <p>Fuel Before Stop: {stopMetrics.fuelBeforeStop.toFixed(2)}%</p>
-          <p>Fuel After Stop: {stopMetrics.fuelAfterStop.toFixed(2)}%</p>
-            {isFuelStop &&(
-            <>
-              <p>Location Name: {stopMetrics.locationName}</p>
-              <p>Unit Price: ${stopMetrics.unitPrice.toFixed(2)}</p>
-              <p>Total Cost: ${stopMetrics.totalCost.toFixed(2)}</p>
-              <p>Quantity: {stopMetrics.quantity.toFixed(2)} gallons</p>
-              <p>City: {stopMetrics.city}</p>
-              <p>State: {stopMetrics.state}</p>
-            </>
+      {
+        isAtStop && (
+          <div className='stop-metrics'>
+            <h3>Stop Metrics</h3>
+            <p>Arrival Time: {stopMetrics.arrivalTime.toLocaleString()}</p>
+            <p>Departure Time: {stopMetrics.departureTime.toLocaleString()}</p>
+            <p>Dwell Time: {formatTime(stopMetrics.dwellTime)}</p>
+            <p>Miles From Last Stop: {stopMetrics.milesFromLastStop.toFixed(2)} miles</p>
+            <p>Fuel Level Before Stop</p>
+            <Box display='flex' alignItems='center'>
+          <Box width='100%' mr={1}>
+            <LinearProgress
+              variant='determinate'
+              value={stopMetrics.fuelBeforeStop}
+              sx={{ 
+                '& .MuiLinearProgress-bar': {
+                  backgroundColor: getFuelBarColor(stopMetrics.fuelBeforeStop),
+                },
+                backgroundColor: '#ddd',
+                borderRadius: '5px',
+                height: '10px'
+                }}
+            />
+          </Box>
+          <Box minWidth={35}>
+            <Typography variant="body2" color="textSecondary">{stopMetrics.fuelBeforeStop.toFixed(2)}%</Typography>
+          </Box>
+        </Box>
+        <p>Fuel Level After Stop</p>
+            <Box display='flex' alignItems='center'>
+          <Box width='100%' mr={1}>
+            <LinearProgress
+              variant='determinate'
+              value={stopMetrics.fuelAfterStop}
+              sx={{ 
+                '& .MuiLinearProgress-bar': {
+                  backgroundColor: getFuelBarColor(stopMetrics.fuelAfterStop),
+                },
+                backgroundColor: '#ddd',
+                borderRadius: '5px',
+                height: '10px'
+                }}
+            />
+          </Box>
+          <Box minWidth={35}>
+            <Typography variant="body2" color="textSecondary">{stopMetrics.fuelAfterStop.toFixed(2)}%</Typography>
+          </Box>
+        </Box>
+            {isFuelStop && (
+              <>
+                <p>Location Name: {stopMetrics.locationName}</p>
+                <p>Unit Price: ${stopMetrics.unitPrice.toFixed(2)}</p>
+                <p>Total Cost: ${stopMetrics.totalCost.toFixed(2)}</p>
+                <p>Quantity: {stopMetrics.quantity.toFixed(2)} gallons</p>
+                <p>City: {stopMetrics.city}</p>
+                <p>State: {stopMetrics.state}</p>
+              </>
             )}
-        </div>
-      )}
-    </div>
+          </div>
+        )
+      }
+    </div >
   )
 }
 
