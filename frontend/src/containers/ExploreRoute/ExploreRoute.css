@@ -1,15 +1,18 @@
 .heading{
-    margin-left: 40px;
+    margin-left: 3vw;
 }
 
 .top-row{
     display: flex;
-    gap: 10px;
-    margin-left: 40px;
+    gap: 2vw;
+    margin-left: 3vw;
+    width: 100%;
+
 }
 
 .bottom-row{
     display: flex;
-    gap: 10px;
-    margin-left: 40px;
+    gap: 2vw;
+    margin-left: 3vw;
+    width: 100%;
 }

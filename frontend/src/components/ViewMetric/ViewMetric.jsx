@@ -172,7 +172,8 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
                 },
                 backgroundColor: '#ddd',
                 borderRadius: '5px',
-                height: '10px'
+                height: '10px',
+                width: '100%'
                 }}
             />
           </Box>
@@ -201,7 +202,8 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
                 },
                 backgroundColor: '#ddd',
                 borderRadius: '5px',
-                height: '10px'
+                height: '10px',
+                width: '100%'
                 }}
             />
           </Box>

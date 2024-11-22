@@ -26,6 +26,7 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
     const [isAtStop, setIsAtStop] = useState(true)
     const [unitTank, setUnitTank] = useState(null)
     const [animationSpeed, setAnimationSpeed] = useState(1)
+    const [heatmapOption, setHeatmapOption] = useState('Speed')
 
     useEffect(() => {
         if (map.current) return;
@@ -183,7 +184,8 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
         mapInstance.setStyle(style)
     }
 
-    const handleToggleHeatMap = () => {
+    const handleToggleHeatMap = (option) => {
+        setHeatmapOption(option)
     }
 
     const removeOldPOIs = () => {
@@ -343,6 +345,7 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
                     stops = {stops}
                     stopIndices = {stopIndices}
                     isAtStop={isAtStop}
+                    heatmapOption={heatmapOption}
                 />
             </div>
             <div className="bottom-row">
@@ -353,10 +356,10 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
                     animationSpeed={animationSpeed}
                 />
                 <MapControls
-                    stops={stops}
                     onChangeMapStyle={handleChangeMapStyle}
                     onExamineStop={handleExamineStop}
                     isAtStop={isAtStop}
+                    heatmapOption={heatmapOption}
                     onToggleHeatMap={handleToggleHeatMap}
                     animationSpeed={animationSpeed}
                     onAnimationSpeedChange={setAnimationSpeed}

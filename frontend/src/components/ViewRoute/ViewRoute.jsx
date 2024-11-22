@@ -6,7 +6,7 @@ import './ViewRoute.css'
 import { icons } from '../../constants'
 import PinBase from '../../assets/location-pin-solid'
 
-const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentPosition, mapStyle, drivePoints, examineStops }) => {
+const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentPosition, mapStyle, drivePoints, examineStops, heatmapOption }) => {
   const layersRef = useRef([])
   const markersRef = useRef([])
   const [truckMarker, setTruckMarker] = useState(null)
@@ -114,6 +114,39 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
       setTruckMarker(marker)
 
   }, [routeGeoJson]);
+
+  useEffect(() => {
+    if (!mapInstance || !routeGeoJson) return;
+
+    const getColorExpression = () => {
+      if (heatmapOption === 'Speed') {
+        return [
+          'interpolate',
+          ['linear'],
+          ['get', 'speed'],
+          0, 'red',
+          30, 'orange',
+          50, 'yellow',
+          80, 'green'
+        ]
+      } else if (heatmapOption === 'Mileage') {
+        return [
+          'interpolate',
+          ['linear'],
+          ['get', 'mileage'],
+          -1, 'red',
+          0, 'orange',
+          1, 'yellow',
+          7, 'greed'
+        ]
+      }
+    }
+
+    if (mapInstance.getLayer('route-points')) {
+      mapInstance.setPaintProperty('route-points', 'circle-color', getColorExpression())
+    }
+
+  }, [heatmapOption])
 
   useEffect(() => {
     if (!mapInstance || !routeGeoJson) return;
