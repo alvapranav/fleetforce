@@ -6,7 +6,7 @@ import './ViewRoute.css'
 import { icons } from '../../constants'
 import PinBase from '../../assets/location-pin-solid'
 
-const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentPosition, mapStyle, drivePoints, examineStops, heatmapOption }) => {
+const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentPosition, mapStyle, setStyleState, drivePoints, examineStops, heatmapOption }) => {
   const layersRef = useRef([])
   const markersRef = useRef([])
   const [truckMarker, setTruckMarker] = useState(null)
@@ -14,104 +14,104 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
   useEffect(() => {
     if (!mapInstance || !routeGeoJson) return;
 
-      const speedStops = [
-        [0, 'red'],
-        [30, 'orange'],
-        [50, 'yellow'],
-        [80, 'green']
-      ]
+    const speedStops = [
+      [0, 'red'],
+      [30, 'orange'],
+      [50, 'yellow'],
+      [80, 'green']
+    ]
 
-      mapInstance.on('load', () => {
-        if (mapInstance.getSource('route')) {
-          mapInstance.getSource('route').setData(routeGeoJson)
-        } else {
-          mapInstance.addSource('route', {
-            type: 'geojson',
-            data: routeGeoJson,
-          })
+    mapInstance.on('load', () => {
+      if (mapInstance.getSource('route')) {
+        mapInstance.getSource('route').setData(routeGeoJson)
+      } else {
+        mapInstance.addSource('route', {
+          type: 'geojson',
+          data: routeGeoJson,
+        })
 
-          const layer = {
-            id: 'route-points',
-            source: 'route',
-            type: 'circle',
-            paint: {
-              'circle-radius': 4,
-              'circle-color': [
-                'interpolate',
-                ['linear'],
-                ['get', 'speed'],
-                ...speedStops.flat(),
-              ],
-            },
-          }
-
-          mapInstance.addLayer(layer)
-
-          layersRef.current.push(layer)
+        const layer = {
+          id: 'route-points',
+          source: 'route',
+          type: 'circle',
+          paint: {
+            'circle-radius': 4,
+            'circle-color': [
+              'interpolate',
+              ['linear'],
+              ['get', 'speed'],
+              ...speedStops.flat(),
+            ],
+          },
         }
 
-        const bounds = routeGeoJson.features.reduce((bounds, feature) => {
-          return bounds.extend(feature.geometry.coordinates)
-        }, new maplibregl.LngLatBounds(routeGeoJson.features[0].geometry.coordinates, routeGeoJson.features[0].geometry.coordinates))
+        mapInstance.addLayer(layer)
 
-        mapInstance.fitBounds(bounds, { padding: 60 })
+        layersRef.current.push(layer)
+      }
 
-      })
+      const bounds = routeGeoJson.features.reduce((bounds, feature) => {
+        return bounds.extend(feature.geometry.coordinates)
+      }, new maplibregl.LngLatBounds(routeGeoJson.features[0].geometry.coordinates, routeGeoJson.features[0].geometry.coordinates))
 
-      // Add stops markers
-      stops.forEach((stop) => {
-        const el = document.createElement('div')
-        el.className = 'custom-marker'
-        el.id = 'custom-marks'
+      mapInstance.fitBounds(bounds, { padding: 60 })
 
-        const IconComponent = getMarkerIcon(stop.type_new)
+    })
 
-        const root = createRoot(el)
-        root.render(
-          <div className='pin-base'>
-            <PinBase
-              fill={getMarkerColor(stop.type_new)}
-              width={30}
-              height={42}
-              style={{ position: 'absolute', top: 0, left: 0 }}
-            />
-            <div className='pin-icon'>
-              {IconComponent &&
-                <IconComponent
-                  width={18}
-                  height={18}
-                  fill={getIconColor(stop.type_new)}
-                  style={{ position: 'absolute', top: 6 }}
-                />}
-            </div>
-          </div>
-        )
-
-        const popupContent = createPopupContent(stop)
-
-        const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
-          .setLngLat([stop.longitude, stop.latitude])
-          .setPopup(new maplibregl.Popup().setDOMContent(popupContent))
-          .addTo(mapInstance)
-
-        markersRef.current.push(marker)
-      })
-
-      const point = drivePoints[currentPosition]
-      const latitude = point.lat
-      const longitude = point.long
-
+    // Add stops markers
+    stops.forEach((stop) => {
       const el = document.createElement('div')
-      el.className = 'truck-marker'
-      el.style.transform = 'rotate(0deg)'
-      el.style.width = '20px'
-      el.style.height = '20px'
-      el.innerHTML = `<img src=${icons.Truck} alt='truck' />`
+      el.className = 'custom-marker'
+      el.id = 'custom-marks'
 
-      const marker = new maplibregl.Marker({ element: el })
-        .setLngLat([longitude, latitude])
+      const IconComponent = getMarkerIcon(stop.type_new)
+
+      const root = createRoot(el)
+      root.render(
+        <div className='pin-base'>
+          <PinBase
+            fill={getMarkerColor(stop.type_new)}
+            width={30}
+            height={42}
+            style={{ position: 'absolute', top: 0, left: 0 }}
+          />
+          <div className='pin-icon'>
+            {IconComponent &&
+              <IconComponent
+                width={18}
+                height={18}
+                fill={getIconColor(stop.type_new)}
+                style={{ position: 'absolute', top: 6 }}
+              />}
+          </div>
+        </div>
+      )
+
+      const popupContent = createPopupContent(stop)
+
+      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+        .setLngLat([stop.longitude, stop.latitude])
+        .setPopup(new maplibregl.Popup().setDOMContent(popupContent))
         .addTo(mapInstance)
-      setTruckMarker(marker)
+
+      markersRef.current.push(marker)
+    })
+
+    const point = drivePoints[currentPosition]
+    const latitude = point.lat
+    const longitude = point.long
+
+    const el = document.createElement('div')
+    el.className = 'truck-marker'
+    el.style.transform = 'rotate(0deg)'
+    el.style.width = '20px'
+    el.style.height = '20px'
+    el.innerHTML = `<img src=${icons.Truck} alt='truck' />`
+
+    const marker = new maplibregl.Marker({ element: el })
+      .setLngLat([longitude, latitude])
+      .addTo(mapInstance)
+    setTruckMarker(marker)
 
   }, [routeGeoJson]);
 
@@ -137,13 +137,25 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
           -1, 'red',
           0, 'orange',
           1, 'yellow',
-          7, 'greed'
+          7, 'green'
         ]
       }
     }
 
     if (mapInstance.getLayer('route-points')) {
       mapInstance.setPaintProperty('route-points', 'circle-color', getColorExpression())
+
+      const updatedLayer = {
+        id: 'route-points',
+        source: 'route',
+        type: 'circle',
+        paint: {
+          'circle-radius': 4,
+          'circle-color': getColorExpression(),
+        },
+      }
+      layersRef.current = layersRef.current.filter((layer) => layer.id !== 'route-points')
+      layersRef.current.push(updatedLayer)
     }
 
   }, [heatmapOption])
@@ -155,6 +167,7 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
       restoreLayers();
       restoreMarkers();
     })
+    setStyleState(true)
   }, [mapInstance, mapStyle]);
 
   const restoreLayers = () => {

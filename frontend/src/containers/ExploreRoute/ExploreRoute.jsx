@@ -27,6 +27,7 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
     const [unitTank, setUnitTank] = useState(null)
     const [animationSpeed, setAnimationSpeed] = useState(1)
     const [heatmapOption, setHeatmapOption] = useState('Speed')
+    const [styleChanged, setStyleChanged] = useState(false)
 
     useEffect(() => {
         if (map.current) return;
@@ -131,6 +132,20 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
         }
     }, [trips, stops, loadingstops]);
 
+    useEffect(() => {
+        if (examineStop && isAtStop) {
+            const stopPoint = stops[stopIndices.findIndex((index) => index === currentPosition)]
+            if (stopPoint) {
+                removeOldPOIs()
+                displayPlacesOfInterest(stopPoint)
+                mapInstance.flyTo({
+                    center: [stopPoint.longitude, stopPoint.latitude],
+                    zoom: 16,
+                })
+            }
+        }
+    }, [currentPosition, examineStop, isAtStop])
+
     const processGPSData = ({ gpsData, stops }) => {
         const drivePoints = [];
         const stopIndices = [];
@@ -180,9 +195,22 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
     }, [currentPosition, stopIndices])
 
     const handleChangeMapStyle = (style) => {
-        setMapStyle(style)
         mapInstance.setStyle(style)
+        setMapStyle(style)
     }
+
+    // useEffect(() => {
+    //     if (examineStop) {
+    //         const stopPoint = stops[stopIndices.findIndex((index) => index === currentPosition)]
+    //         if (stopPoint) {
+    //             mapInstance.flyTo({
+    //                 center: [stopPoint.longitude, stopPoint.latitude],
+    //                 zoom: 16,
+    //             })
+    //             displayPlacesOfInterest(stopPoint)
+    //         }
+    //     }
+    // }, [mapStyle, mapInstance, styleChanged])
 
     const handleToggleHeatMap = (option) => {
         setHeatmapOption(option)
@@ -335,17 +363,18 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
                     routeGeoJson={routeGeoJson}
                     currentPosition={currentPosition}
                     mapStyle={mapStyle}
+                    setStyleState={setStyleChanged}
                     drivePoints={drivePoints}
                     examineStop={examineStop}
+                    heatmapOption={heatmapOption}
                 />
                 <ViewMetric
                     currentPosition={currentPosition}
                     drivePoints={drivePoints}
                     unitTank={unitTank}
-                    stops = {stops}
-                    stopIndices = {stopIndices}
+                    stops={stops}
+                    stopIndices={stopIndices}
                     isAtStop={isAtStop}
-                    heatmapOption={heatmapOption}
                 />
             </div>
             <div className="bottom-row">
@@ -354,13 +383,14 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
                     onPositionChange={handlePositionChange}
                     stopIndices={stopIndices}
                     animationSpeed={animationSpeed}
+                    examineStop={examineStop}
                 />
                 <MapControls
                     onChangeMapStyle={handleChangeMapStyle}
                     onExamineStop={handleExamineStop}
+                    examineStop={examineStop}
                     isAtStop={isAtStop}
-                    heatmapOption={heatmapOption}
-                    onToggleHeatMap={handleToggleHeatMap}
+                    onToggleHeatmap={handleToggleHeatMap}
                     animationSpeed={animationSpeed}
                     onAnimationSpeedChange={setAnimationSpeed}
                 />
