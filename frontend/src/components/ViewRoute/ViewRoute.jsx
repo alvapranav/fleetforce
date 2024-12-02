@@ -6,7 +6,7 @@ import './ViewRoute.css'
 import { icons } from '../../constants'
 import PinBase from '../../assets/location-pin-solid'
 
-const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentPosition, mapStyle, setStyleState, drivePoints, examineStops, heatmapOption }) => {
+const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentPosition, mapStyle, drivePoints, examineStops, heatmapOption }) => {
   const layersRef = useRef([])
   const markersRef = useRef([])
   const [truckMarker, setTruckMarker] = useState(null)
@@ -167,7 +167,6 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
       restoreLayers();
       restoreMarkers();
     })
-    setStyleState(true)
   }, [mapInstance, mapStyle]);
 
   const restoreLayers = () => {

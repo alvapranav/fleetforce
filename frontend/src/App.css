@@ -51,3 +51,16 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
   monospace;
 }
+
+.app-container {
+  display: flex;
+  height: 100vh;
+  background-image: url('./assets/background-image.png');
+}
+
+.main-content {
+  flex: 1;
+  padding-left: 220px;
+  padding-top: 20px;
+  overflow-y: auto;
+}

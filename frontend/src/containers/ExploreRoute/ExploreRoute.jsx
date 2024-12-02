@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 // import { Box, Grid2, Typography } from '@mui/material'
+import { useParams } from 'react-router-dom'
 import maplibregl from 'maplibre-gl'
 import axios from 'axios'
 import wellknown from 'wellknown'
@@ -7,7 +8,8 @@ import { ViewMetric, ViewRoute, PlaybackControls, MapControls } from '../../comp
 import './ExploreRoute.css'
 
 
-const ExploreRoute = ({ tripId, arrivalDate }) => {
+const ExploreRoute = () => {
+    const {tripId, arrivalDate} = useParams()
     const mapContainerRef = useRef(null)
     const map = useRef(null)
     const [mapInstance, setMapInstance] = useState(null)
@@ -27,7 +29,6 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
     const [unitTank, setUnitTank] = useState(null)
     const [animationSpeed, setAnimationSpeed] = useState(1)
     const [heatmapOption, setHeatmapOption] = useState('Speed')
-    const [styleChanged, setStyleChanged] = useState(false)
 
     useEffect(() => {
         if (map.current) return;
@@ -51,7 +52,7 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
             try {
                 setLoadingTrips(true)
 
-                const response = await axios.get(`/api/trips/${tripId}/${arrivalDate}`)
+                const response = await axios.get(`/api/trip/${tripId}/${arrivalDate}`)
                 const tripsData = response.data
 
                 setTrips(tripsData[0])
@@ -198,19 +199,6 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
         mapInstance.setStyle(style)
         setMapStyle(style)
     }
-
-    // useEffect(() => {
-    //     if (examineStop) {
-    //         const stopPoint = stops[stopIndices.findIndex((index) => index === currentPosition)]
-    //         if (stopPoint) {
-    //             mapInstance.flyTo({
-    //                 center: [stopPoint.longitude, stopPoint.latitude],
-    //                 zoom: 16,
-    //             })
-    //             displayPlacesOfInterest(stopPoint)
-    //         }
-    //     }
-    // }, [mapStyle, mapInstance, styleChanged])
 
     const handleToggleHeatMap = (option) => {
         setHeatmapOption(option)
@@ -363,7 +351,6 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
                     routeGeoJson={routeGeoJson}
                     currentPosition={currentPosition}
                     mapStyle={mapStyle}
-                    setStyleState={setStyleChanged}
                     drivePoints={drivePoints}
                     examineStop={examineStop}
                     heatmapOption={heatmapOption}
@@ -384,6 +371,8 @@ const ExploreRoute = ({ tripId, arrivalDate }) => {
                     stopIndices={stopIndices}
                     animationSpeed={animationSpeed}
                     examineStop={examineStop}
+                    stops={stops}
+                    drivePoints={drivePoints}
                 />
                 <MapControls
                     onChangeMapStyle={handleChangeMapStyle}

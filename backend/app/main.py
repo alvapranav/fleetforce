@@ -21,10 +21,20 @@ async def get_stops(trip_id: str, arrival_datetime: str, to_arrival_datetime: st
     else:
         raise HTTPException(status_code=404, detail="Stops not found")
     
-@app.get("/api/trips/{trip_id}/{arrival_datetime}")
+@app.get("/api/trip/{trip_id}/{arrival_datetime}")
 async def get_trip(trip_id: str, arrival_datetime: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(text("SELECT * FROM trips WHERE trip_ref_norm = :trip_id  AND arrival_datetime = :arrival_datetime"), 
                  {"trip_id": trip_id, "arrival_datetime": arrival_datetime})
+    trip = result.fetchall()
+    if trip:
+        return [row._asdict() for row in trip]
+    else:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    
+@app.get("/api/trips")
+async def get_trips_in_stops(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(text("""SELECT t.tractor_id, t.trip_ref_norm, t.country, t.state, t.city, t.to_country, t.to_state, t.to_city, t.arrival_datetime, t.to_arrival_datetime 
+                                   FROM trips t INNER JOIN stops s ON t.trip_ref_norm = s.trip_id WHERE s.type_new = 'start' AND t.arrival_datetime = s.arrival_datetime"""))
     trip = result.fetchall()
     if trip:
         return [row._asdict() for row in trip]
