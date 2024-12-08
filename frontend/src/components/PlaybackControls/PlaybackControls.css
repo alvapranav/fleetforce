@@ -1,5 +1,5 @@
 .playback-controls {
-    width: 60vw;
+    width: 50vw;
 }
 
 .buttons {
@@ -12,8 +12,6 @@
 .slider {
     display: flex;
     margin-top: 20px;
-    margin-left: 10%;
-    margin-right: 10%;
 }
 
 .custom-marker-1 {

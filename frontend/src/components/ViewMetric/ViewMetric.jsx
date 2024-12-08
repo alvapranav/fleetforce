@@ -1,7 +1,8 @@
-import { LinearProgress, Box, Typography } from '@mui/material'
+import { Tabs, Tab, LinearProgress, Box, Typography } from '@mui/material'
 import React, { useState, useEffect } from 'react'
 
 const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices, isAtStop }) => {
+  const [activeTab, setActiveTab] = useState(0)
 
   const [metrics, setMetrics] = useState({
     distanceDriven: 0,
@@ -149,103 +150,152 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
     }
 
   }, [currentPosition, drivePoints, stops, stopIndices, unitTank, isAtStop])
+
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue)
+  }
+
   return (
     <div className='view-metrics'>
-      <div className='trip-metrics'>
-        <h3>Trip Metrics</h3>
-        <p>Distance Driven: {metrics.distanceDriven.toFixed(2)} miles</p>
-        <p>Time Taken: {formatTime(metrics.timeTaken)} minutes</p>
-        <p>Amount Spent: ${metrics.amountSpent.toFixed(2)}</p>
-        <p> Total Dwell Time: {formatTime(metrics.totalDwellTime)} minutes</p>
-        <p>Fuel Purchased: {metrics.fuelPurchased.toFixed(2)} gallons</p>
-        <p>Fuel Consumed: {metrics.fuelConsumed.toFixed(2)} gallons</p>
-        <p>Miles Per Gallon: {metrics.milesPerGallon}</p>
-        <p>Fuel Tank Level:</p>
-        <Box display='flex' alignItems='center'>
-          <Box width='100%' mr={1}>
-            <LinearProgress
-              variant='determinate'
-              value={metrics.fuelLevel}
-              sx={{ 
-                '& .MuiLinearProgress-bar': {
-                  backgroundColor: getFuelBarColor(metrics.fuelLevel),
-                },
-                backgroundColor: '#ddd',
-                borderRadius: '5px',
-                height: '10px',
-                width: '100%'
+      <Tabs
+        value={activeTab}
+        onChange={handleTabChange}
+        variant='fullWidth'
+        indicatorColor='primary'
+        textColor='primary'
+      >
+        <Tab label='Trip Metrics' />
+        <Tab label='Driver Profile' />
+        <Tab label='Vehicle Details' />
+        {isAtStop && <Tab label='Stop Metrics' />}
+      </Tabs>
+      <TabPanel value={activeTab} index={0}>
+        <div className='trip-metrics'>
+          <p>Distance Driven: {metrics.distanceDriven.toFixed(2)} miles</p>
+          <p>Time Taken: {formatTime(metrics.timeTaken)} minutes</p>
+          <p>Amount Spent: ${metrics.amountSpent.toFixed(2)}</p>
+          <p> Total Dwell Time: {formatTime(metrics.totalDwellTime)} minutes</p>
+          <p>Fuel Purchased: {metrics.fuelPurchased.toFixed(2)} gallons</p>
+          <p>Fuel Consumed: {metrics.fuelConsumed.toFixed(2)} gallons</p>
+          <p>Miles Per Gallon: {metrics.milesPerGallon}</p>
+          <p>Fuel Tank Level:</p>
+          <Box display='flex' alignItems='center'>
+            <Box width='100%' mr={1}>
+              <LinearProgress
+                variant='determinate'
+                value={metrics.fuelLevel}
+                sx={{
+                  '& .MuiLinearProgress-bar': {
+                    backgroundColor: getFuelBarColor(metrics.fuelLevel),
+                  },
+                  backgroundColor: '#ddd',
+                  borderRadius: '5px',
+                  height: '10px',
+                  width: '100%'
                 }}
-            />
+              />
+            </Box>
+            <Box minWidth={35}>
+              <Typography variant="body2" color="textSecondary">{metrics.fuelLevel.toFixed(2)}%</Typography>
+            </Box>
           </Box>
-          <Box minWidth={35}>
-            <Typography variant="body2" color="textSecondary">{metrics.fuelLevel.toFixed(2)}%</Typography>
-          </Box>
-        </Box>
-      </div>
+        </div>
+      </TabPanel>
+      <TabPanel value={activeTab} index={1}>
+        <div className='driver-profile'>
+          <p>Name: John Smith</p>
+          <p>ID: K3824739</p>
+          <p>Licence Type: CDL Class A</p>
+          <p>Safety Score: 89 </p>
+          <p>Total Driving Hours: 156 hrs</p>
+          <p>Average Idle Time per Trip: 2.6 hrs</p>
+        </div>
+      </TabPanel>
+      <TabPanel value={activeTab} index={2}>
+        <div className='vehicle-details'>
+          <p>VIN: 1HGCM82633A123456</p>
+          <p>Make and Model: Freightliner Cascadia</p>
+          <p>Year: 2017</p>
+          <p>Fuel Efficiency: 7.6 MPG</p>
+          <p>Total Distance Travelled: 2878 miles</p>
+          <p>Average Idle Time: 7.5 hrs</p>
+        </div>
+      </TabPanel>
       {
         isAtStop && (
-          <div className='stop-metrics'>
-            <h3>Stop Metrics</h3>
-            <p>Arrival Time: {stopMetrics.arrivalTime.toLocaleString()}</p>
-            <p>Departure Time: {stopMetrics.departureTime.toLocaleString()}</p>
-            <p>Dwell Time: {formatTime(stopMetrics.dwellTime)}</p>
-            <p>Miles From Last Stop: {stopMetrics.milesFromLastStop.toFixed(2)} miles</p>
-            <p>Fuel Level Before Stop</p>
-            <Box display='flex' alignItems='center'>
-          <Box width='100%' mr={1}>
-            <LinearProgress
-              variant='determinate'
-              value={stopMetrics.fuelBeforeStop}
-              sx={{ 
-                '& .MuiLinearProgress-bar': {
-                  backgroundColor: getFuelBarColor(stopMetrics.fuelBeforeStop),
-                },
-                backgroundColor: '#ddd',
-                borderRadius: '5px',
-                height: '10px',
-                width: '100%'
-                }}
-            />
-          </Box>
-          <Box minWidth={35}>
-            <Typography variant="body2" color="textSecondary">{stopMetrics.fuelBeforeStop.toFixed(2)}%</Typography>
-          </Box>
-        </Box>
-        <p>Fuel Level After Stop</p>
-            <Box display='flex' alignItems='center'>
-          <Box width='100%' mr={1}>
-            <LinearProgress
-              variant='determinate'
-              value={stopMetrics.fuelAfterStop}
-              sx={{ 
-                '& .MuiLinearProgress-bar': {
-                  backgroundColor: getFuelBarColor(stopMetrics.fuelAfterStop),
-                },
-                backgroundColor: '#ddd',
-                borderRadius: '5px',
-                height: '10px'
-                }}
-            />
-          </Box>
-          <Box minWidth={35}>
-            <Typography variant="body2" color="textSecondary">{stopMetrics.fuelAfterStop.toFixed(2)}%</Typography>
-          </Box>
-        </Box>
-            {isFuelStop && (
-              <>
-                <p>Location Name: {stopMetrics.locationName}</p>
-                <p>Unit Price: ${stopMetrics.unitPrice.toFixed(2)}</p>
-                <p>Total Cost: ${stopMetrics.totalCost.toFixed(2)}</p>
-                <p>Quantity: {stopMetrics.quantity.toFixed(2)} gallons</p>
-                <p>City: {stopMetrics.city}</p>
-                <p>State: {stopMetrics.state}</p>
-              </>
-            )}
-          </div>
+          <TabPanel value={activeTab} index={3}>
+            <div className='stop-metrics'>
+              <p>Arrival Time: {stopMetrics.arrivalTime.toLocaleString()}</p>
+              <p>Departure Time: {stopMetrics.departureTime.toLocaleString()}</p>
+              <p>Dwell Time: {formatTime(stopMetrics.dwellTime)}</p>
+              <p>Miles From Last Stop: {stopMetrics.milesFromLastStop.toFixed(2)} miles</p>
+              <p>Fuel Level Before Stop</p>
+              <Box display='flex' alignItems='center'>
+                <Box width='100%' mr={1}>
+                  <LinearProgress
+                    variant='determinate'
+                    value={stopMetrics.fuelBeforeStop}
+                    sx={{
+                      '& .MuiLinearProgress-bar': {
+                        backgroundColor: getFuelBarColor(stopMetrics.fuelBeforeStop),
+                      },
+                      backgroundColor: '#ddd',
+                      borderRadius: '5px',
+                      height: '10px',
+                      width: '100%'
+                    }}
+                  />
+                </Box>
+                <Box minWidth={35}>
+                  <Typography variant="body2" color="textSecondary">{stopMetrics.fuelBeforeStop.toFixed(2)}%</Typography>
+                </Box>
+              </Box>
+              <p>Fuel Level After Stop</p>
+              <Box display='flex' alignItems='center'>
+                <Box width='100%' mr={1}>
+                  <LinearProgress
+                    variant='determinate'
+                    value={stopMetrics.fuelAfterStop}
+                    sx={{
+                      '& .MuiLinearProgress-bar': {
+                        backgroundColor: getFuelBarColor(stopMetrics.fuelAfterStop),
+                      },
+                      backgroundColor: '#ddd',
+                      borderRadius: '5px',
+                      height: '10px'
+                    }}
+                  />
+                </Box>
+                <Box minWidth={35}>
+                  <Typography variant="body2" color="textSecondary">{stopMetrics.fuelAfterStop.toFixed(2)}%</Typography>
+                </Box>
+              </Box>
+              {isFuelStop && (
+                <>
+                  <p>Location Name: {stopMetrics.locationName}</p>
+                  <p>Unit Price: ${stopMetrics.unitPrice.toFixed(2)}</p>
+                  <p>Total Cost: ${stopMetrics.totalCost.toFixed(2)}</p>
+                  <p>Quantity: {stopMetrics.quantity.toFixed(2)} gallons</p>
+                  <p>City: {stopMetrics.city}</p>
+                  <p>State: {stopMetrics.state}</p>
+                </>
+              )}
+            </div>
+          </TabPanel>
         )
       }
     </div >
   )
 }
+
+const TabPanel = ({ children, value, index }) => (
+  <div role='tabpanel' hidden={value !== index}>
+    {value === index && (
+      <Box p={2}>
+        {children}
+      </Box>
+    )}
+  </div>
+)
 
 export default ViewMetric
