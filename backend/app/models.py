@@ -1,5 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, JSON
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.ext.declarative import declarative_base
+from geoalchemy2 import Geometry
+from geoalchemy2.types import Geography
 
 Base = declarative_base()
 
@@ -70,15 +72,16 @@ class Stops(Base):
 
 class Places(Base):
     __tablename__ = 'places'
-    hash_index = Column(String, primary_key=True, index=True)
+    hash_index = Column(String, primary_key=True)
     name = Column(String)
     geometry = Column(String)
     amenity = Column(String)
     building = Column(String)
     shop = Column(String)
     highway = Column(String)
-    latitude = Column(Float,index=True)
-    longitude = Column(Float,index=True)
+    latitude = Column(Float)
+    longitude = Column(Float)
+    coords = Column(Geometry(geometry_type='POINT', srid=4326), index=True)
 
 class Trips(Base):
     __tablename__ = 'trips'
