@@ -9,7 +9,7 @@ const App = () => {
       <div className="main-content">
       <Routes>
         <Route index element={<Main />} />
-        <Route path='/explore/:tripId/:arrivalDate' element={<Drilldown />} />
+        <Route path='/explore/:tractorId/:arrivalDate/:toArrivalDate' element={<Drilldown />} />
       </Routes>
       </div>
     </div>

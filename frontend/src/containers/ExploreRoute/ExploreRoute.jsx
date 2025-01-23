@@ -9,13 +9,12 @@ import './ExploreRoute.css'
 
 
 const ExploreRoute = () => {
-    const {tripId, arrivalDate} = useParams()
+    const {tractorId, arrivalDate, toArrivalDate} = useParams()
     const mapContainerRef = useRef(null)
     const map = useRef(null)
     const [mapInstance, setMapInstance] = useState(null)
     const [trips, setTrips] = useState(null);
     const [stops, setStops] = useState([]);
-    const [toArrivalDate, setToArrivalDate] = useState('')
     const [loadingtrips, setLoadingTrips] = useState(true)
     const [loadingstops, setLoadingStops] = useState(true)
     const [routeGeoJson, setRouteGeoJson] = useState(null)
@@ -52,7 +51,7 @@ const ExploreRoute = () => {
             try {
                 setLoadingTrips(true)
 
-                const response = await axios.get(`/api/trip/${tripId}/${arrivalDate}`)
+                const response = await axios.get(`/api/trip/${tractorId}/${arrivalDate}`)
                 const tripsData = response.data
 
                 setTrips(tripsData[0])
@@ -68,7 +67,7 @@ const ExploreRoute = () => {
 
         fetchTripsData()
 
-    }, [mapInstance, tripId, arrivalDate]);
+    }, [mapInstance, tractorId, arrivalDate]);
 
     useEffect(() => {
         if (!mapInstance) return
@@ -77,11 +76,12 @@ const ExploreRoute = () => {
 
                 setLoadingStops(true)
 
-                const endDate = trips.to_arrival_datetime
-                setToArrivalDate(endDate)
-                setUnitTank(trips.unit_tank)
+                // const endDate = trips.to_arrival_datetime
+                // setToArrivalDate(endDate)
+                const ut = trips.unit_tank
+                setUnitTank(ut)
 
-                const response = await axios.get(`/api/stops/${tripId}/${arrivalDate}/${toArrivalDate}`)
+                const response = await axios.get(`/api/stops/${tractorId}/${arrivalDate}/${toArrivalDate}`)
                 const stopsData = response.data
                 setStops(stopsData)
 
@@ -96,7 +96,7 @@ const ExploreRoute = () => {
 
         fetchStopsData()
 
-    }, [mapInstance, tripId, arrivalDate, trips, loadingtrips, toArrivalDate]);
+    }, [mapInstance, tractorId, arrivalDate, trips, loadingtrips, toArrivalDate]);
 
     useEffect(() => {
         // if (!mapInstance || loadingstops) return;
@@ -104,9 +104,9 @@ const ExploreRoute = () => {
         if (!loadingstops && stops.length > 0) {
 
             // if (currentPosition === 0) {
-
+            console.log(stops)
             var gpsData = trips.gps
-            gpsData = JSON.parse(gpsData)
+            // gpsData = JSON.parse(gpsData)
 
             const processedData = processGPSData({ gpsData, stops })
             setDrivePoints(processedData.drivePoints)
@@ -339,7 +339,7 @@ const ExploreRoute = () => {
     return (
         <div className="explore-route">
             {stops.length > 0 ? (
-                <h1 className='heading'>Trip ID: {tripId} &emsp;Tractor ID: {stops[0].tractor_id}</h1>
+                <h1 className='heading'>Tractor ID: {stops[0].tractor_id}</h1>
             ) : (
                 <h1>Loading...</h1>
             )}

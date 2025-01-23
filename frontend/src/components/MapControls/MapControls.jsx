@@ -11,16 +11,16 @@ const MapControls = ({ onChangeMapStyle, onExamineStop, examineStop, isAtStop, o
         <MenuItem value="https://api.maptiler.com/maps/backdrop/style.json?key=oGOTJkyBZPxrLa145LN6">Backdrop</MenuItem>
       </Select>
       {/* <h4 variant='h4'>Heatmap</h4> */}
-      <Select
+      {/* <Select
         defaultValue="Speed" on onChange={(e) => onToggleHeatmap(e.target.value)}
       >
         <MenuItem value="Speed">Speed</MenuItem>
         <MenuItem value="Mileage">Mileage</MenuItem>
-      </Select>
+      </Select> */}
       <Button
         onClick={onExamineStop}
         disabled={!isAtStop}
-      >{examineStop ? 'View Route' :'Examine Stop'}</Button>
+      >{examineStop ? 'View Route' : 'Examine Stop'}</Button>
       {/* <h4>Animation Speed:</h4> */}
       <Slider
         value={animationSpeed}
