@@ -11,20 +11,20 @@ async def get_db():
     async with async_session() as session:
         yield session
 
-@app.get("/api/stops/{trip_id}/{arrival_datetime}/{to_arrival_datetime}")
-async def get_stops(trip_id: str, arrival_datetime: str, to_arrival_datetime: str, db: AsyncSession = Depends(get_db)):
-    result1 = await db.execute(text("SELECT * FROM stops WHERE trip_id = :trip_id AND arrival_datetime >= :arrival_datetime AND arrival_datetime <= :to_arrival_datetime"), 
-                 {"trip_id": trip_id, "arrival_datetime": arrival_datetime, "to_arrival_datetime": to_arrival_datetime})
+@app.get("/api/stops/{tractor_id}/{arrival_datetime}/{to_arrival_datetime}")
+async def get_stops(tractor_id: str, arrival_datetime: str, to_arrival_datetime: str, db: AsyncSession = Depends(get_db)):
+    result1 = await db.execute(text("SELECT * FROM stops WHERE tractor_id = :tractor_id AND arrival_datetime >= :arrival_datetime AND arrival_datetime < :to_arrival_datetime"), 
+                 {"tractor_id": tractor_id, "arrival_datetime": arrival_datetime, "to_arrival_datetime": to_arrival_datetime})
     stops = result1.fetchall()
     if stops:
         return [row._asdict() for row in stops]
     else:
         raise HTTPException(status_code=404, detail="Stops not found")
     
-@app.get("/api/trip/{trip_id}/{arrival_datetime}")
-async def get_trip(trip_id: str, arrival_datetime: str, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(text("SELECT * FROM trips WHERE trip_ref_norm = :trip_id  AND arrival_datetime = :arrival_datetime"), 
-                 {"trip_id": trip_id, "arrival_datetime": arrival_datetime})
+@app.get("/api/trip/{tractor_id}/{arrival_datetime}")
+async def get_trip(tractor_id: str, arrival_datetime: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(text("SELECT * FROM trips WHERE tractor_id = :tractor_id  AND arrival_datetime = :arrival_datetime"), 
+                 {"tractor_id": tractor_id, "arrival_datetime": arrival_datetime})
     trip = result.fetchall()
     if trip:
         return [row._asdict() for row in trip]
@@ -33,8 +33,9 @@ async def get_trip(trip_id: str, arrival_datetime: str, db: AsyncSession = Depen
     
 @app.get("/api/trips")
 async def get_trips_in_stops(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(text("""SELECT t.tractor_id, t.trip_ref_norm, t.country, t.state, t.city, t.to_country, t.to_state, t.to_city, t.arrival_datetime, t.to_arrival_datetime 
-                                   FROM trips t INNER JOIN stops s ON t.trip_ref_norm = s.trip_id WHERE s.type_new = 'start' AND t.arrival_datetime = s.arrival_datetime"""))
+    result = await db.execute(text("""SELECT tractor_id, trip_ref_norm, country, state, city, to_country, to_state, to_city, arrival_datetime,
+                                    to_arrival_datetime, distance_travelled, time_taken, total_stops, total_fuel_stops, total_short_stops,
+                                    total_long_stops, total_dwell_time, volume_fuel_purchased, dollar_fuel_purchased FROM trips"""))
     trip = result.fetchall()
     if trip:
         return [row._asdict() for row in trip]
