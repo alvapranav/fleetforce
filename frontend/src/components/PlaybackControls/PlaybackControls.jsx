@@ -5,7 +5,7 @@ import PinBase from '../../assets/location-pin-solid'
 import { icons } from '../../constants'
 import './PlaybackControls.css'
 
-const PlaybackControls = ({ totalDrivePoints, onPositionChange, stopIndices, animationSpeed, examineStop, stops, drivePoints }) => {
+const PlaybackControls = ({ totalDrivePoints, onPositionChange, stopIndices, animationSpeed, examineStop, stops, drivePoints, tripKey }) => {
   const [position, setPosition] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [percentage, setPercentage] = useState('0.00')
@@ -111,6 +111,10 @@ const PlaybackControls = ({ totalDrivePoints, onPositionChange, stopIndices, ani
     setPercentage(newPercentage)
     onPositionChange(position)
   }, [position])
+
+  useEffect(() => {
+    setPosition(0)
+  }, [tripKey])
 
   const handleSliderChange = (event, value) => {
     const newPosition = Math.round((value / 100) * (totalDrivePoints - 1))

@@ -5,18 +5,18 @@ const MapControls = ({ onChangeMapStyle, onExamineStop, examineStop, isAtStop, o
   return (
     <div className='map-controls'>
       {/* <h4 variant='h4'>Map Controls</h4> */}
-      <Select defaultValue="https://api.maptiler.com/maps/basic-v2/style.json?key=oGOTJkyBZPxrLa145LN6" on onChange={(e) => onChangeMapStyle(e.target.value)} disabled={examineStop}>
+      <Select defaultValue="https://api.maptiler.com/maps/basic-v2/style.json?key=oGOTJkyBZPxrLa145LN6" onChange={(e) => onChangeMapStyle(e.target.value)} disabled={examineStop}>
         <MenuItem value="https://api.maptiler.com/maps/basic-v2/style.json?key=oGOTJkyBZPxrLa145LN6">Basic</MenuItem>
         <MenuItem value="https://api.maptiler.com/maps/satellite/style.json?key=oGOTJkyBZPxrLa145LN6">Satellite</MenuItem>
         <MenuItem value="https://api.maptiler.com/maps/backdrop/style.json?key=oGOTJkyBZPxrLa145LN6">Backdrop</MenuItem>
       </Select>
       {/* <h4 variant='h4'>Heatmap</h4> */}
-      {/* <Select
-        defaultValue="Speed" on onChange={(e) => onToggleHeatmap(e.target.value)}
+      <Select
+        defaultValue="Speed" onChange={(e) => onToggleHeatmap(e.target.value)}
       >
         <MenuItem value="Speed">Speed</MenuItem>
         <MenuItem value="Mileage">Mileage</MenuItem>
-      </Select> */}
+      </Select>
       <Button
         onClick={onExamineStop}
         disabled={!isAtStop}

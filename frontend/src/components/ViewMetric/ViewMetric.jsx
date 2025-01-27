@@ -1,7 +1,36 @@
 import { Tabs, Tab, LinearProgress, Box, Typography } from '@mui/material'
 import React, { useState, useEffect } from 'react'
+import axios from 'axios'
+import { useNavigate } from 'react-router-dom'
 
-const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices, isAtStop }) => {
+// Helper to convert distance in meters to miles
+const metersToMiles = (m) => {
+  if (!m) return '';
+  const miles = m * 0.000621371;
+  return miles.toFixed(2);  // e.g. "12.35"
+};
+
+const formatTimeTaken = (seconds) => {
+  if (!seconds || seconds <= 0) return '';
+  let days = Math.floor(seconds / 86400);
+  let remainder = seconds % 86400;
+  let hrs = remainder / 3600.0;
+
+  if (days > 0) {
+    return `${days} day(s), ${hrs.toFixed(1)} hr(s)`;
+  } else {
+    return `${hrs.toFixed(1)} hr(s)`;
+  }
+};
+
+// Convert dwell seconds to hours
+const formatDwellHours = (seconds) => {
+  if (!seconds || seconds <= 0) return '';
+  const hrs = seconds / 3600;
+  return hrs.toFixed(2); // e.g. "3.45"
+};
+
+const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices, isAtStop, tractorId, arrivalDate, onTripSelect }) => {
   const [activeTab, setActiveTab] = useState(0)
 
   const [metrics, setMetrics] = useState({
@@ -30,7 +59,11 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
     state: '',
   })
 
+  const [tractorTrips, setTractorTrips] = useState([])
+  const [loadingTractorTrips, setLoadingTractorTrips] = useState(true)
+
   const [isFuelStop, setIsFuelStop] = useState(false)
+  const history = useNavigate();
 
   const getFuelBarColor = (value) => {
     if (value > 75) {
@@ -50,6 +83,30 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
     const mins = Math.floor(minutes % 60)
     return `${hours}h ${mins}m`
   }
+
+  useEffect(() => {
+    if (!loadingTractorTrips) return;
+
+    const fetchTripsData = async () => {
+      try {
+        setLoadingTractorTrips(true)
+
+        const response = await axios.get(`/api/tractor_trips/${tractorId}`)
+        const tripsData = response.data
+
+        setTractorTrips(tripsData)
+
+        setLoadingTractorTrips(false)
+
+      }
+      catch (error) {
+        console.error('Error fetching trips data:', error)
+        setLoadingTractorTrips(false)
+      }
+    }
+
+    fetchTripsData()
+  }, [tractorId])
 
   useEffect(() => {
     const calculateMetrics = () => {
@@ -151,6 +208,82 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
 
   }, [currentPosition, drivePoints, stops, stopIndices, unitTank, isAtStop])
 
+  const checkIfContinuous = (idx) => {
+    if (idx > tractorTrips.length - 1 || idx == 0) return false
+
+    const current = tractorTrips[idx]
+    const prev = tractorTrips[idx - 1]
+
+    const continuousCity = current.city === prev.to_city
+    const continuousState = current.state === prev.to_state
+    const continuousTime = current.arrival_datetime === prev.to_arrival_datetime
+
+    return continuousCity && continuousState && continuousTime
+  }
+
+  const renderTractorTimeline = () => {
+    if (!tractorTrips || tractorTrips.length === 0) {
+      return <p>No tractor trips available</p>
+    }
+    return (
+      <div style={{ overflowY: 'auto', maxHeight: '300px' }}>
+        {tractorTrips.map((tripItem, idx) => {
+          const isCurrent = tripItem.arrival_datetime === arrivalDate
+          const continuous = checkIfContinuous(idx)
+
+          return (
+            <div
+              key={tripItem.arrival_datetime}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}
+            >
+              {idx > 0 && (
+                continuous
+                  ? <div syle={{ width: '2px', height: '20px', backgroundColor: 'black' }} />
+                  : <div style={{ height: '10px' }} />
+              )}
+
+              <div style={{
+                width: '10px',
+                height: '10px',
+                borderRadius: '50%',
+                backgroundColor: isCurrent ? 'blue' : '#555',
+                margin: '10px',
+              }} />
+
+              <p style={{ margin: 0, paddingInlineStart: '30px', marginBlockEnd: '10px' }}>{tripItem.city}, {tripItem.state}</p>
+
+              {/* {isCurrent && (
+                <p style={{ margin: 0, marginLeft: '8px', color: 'blue', fontWeight: 'bold' }}>
+                  Current Trip's End
+                </p>
+              )} */}
+
+              <div
+                style={{
+                  border: isCurrent ? '2px solid blue' : '1px solid #ccc',
+                  marginLeft: '30px',
+                  padding: '5px',
+                  cursor: 'pointer',
+                }}
+                onClick={() => handleTimelineClick(tripItem)}
+              >
+                <p>Time Taken: {formatTimeTaken(tripItem.time_taken)}</p>
+                <p>Distance: {metersToMiles(tripItem.distance_travelled)} miles</p>
+                <p>Stops: {tripItem.total_stops}, Dwell: {formatDwellHours(tripItem.total_dwell_time)} hrs</p>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
+  const handleTimelineClick = (tripItem) => {
+    history(`/explore/${tractorId}/${tripItem.arrival_datetime}/${tripItem.to_arrival_datetime}`)
+
+    onTripSelect && onTripSelect()
+  }
+
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue)
   }
@@ -167,6 +300,7 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
         <Tab label='Trip Metrics' />
         <Tab label='Driver Profile' />
         <Tab label='Vehicle Details' />
+        <Tab label='Tractor Timeline' />
         {isAtStop && <Tab label='Stop Metrics' />}
       </Tabs>
       <TabPanel value={activeTab} index={0}>
@@ -221,9 +355,12 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
           <p>Average Idle Time: 7.5 hrs</p>
         </div>
       </TabPanel>
+      <TabPanel value={activeTab} index={3}>
+        {renderTractorTimeline()}
+      </TabPanel>
       {
         isAtStop && (
-          <TabPanel value={activeTab} index={3}>
+          <TabPanel value={activeTab} index={4}>
             <div className='stop-metrics'>
               <p>Arrival Time: {stopMetrics.arrivalTime.toLocaleString()}</p>
               <p>Departure Time: {stopMetrics.departureTime.toLocaleString()}</p>

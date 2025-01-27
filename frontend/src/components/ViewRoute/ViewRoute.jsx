@@ -21,42 +21,52 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
       [80, 'green']
     ]
 
-    mapInstance.on('load', () => {
-      if (mapInstance.getSource('route')) {
-        mapInstance.getSource('route').setData(routeGeoJson)
-      } else {
-        mapInstance.addSource('route', {
-          type: 'geojson',
-          data: routeGeoJson,
-        })
+    // REMOVE old route & layer if any
+    if (mapInstance.getLayer('route-points')) {
+      mapInstance.removeLayer('route-points')
+    }
+    if (mapInstance.getSource('route')) {
+      mapInstance.removeSource('route')
+    }
 
-        const layer = {
-          id: 'route-points',
-          source: 'route',
-          type: 'circle',
-          paint: {
-            'circle-radius': 4,
-            'circle-color': [
-              'interpolate',
-              ['linear'],
-              ['get', 'speed'],
-              ...speedStops.flat(),
-            ],
-          },
-        }
-
-        mapInstance.addLayer(layer)
-
-        layersRef.current.push(layer)
-      }
-
-      const bounds = routeGeoJson.features.reduce((bounds, feature) => {
-        return bounds.extend(feature.geometry.coordinates)
-      }, new maplibregl.LngLatBounds(routeGeoJson.features[0].geometry.coordinates, routeGeoJson.features[0].geometry.coordinates))
-
-      mapInstance.fitBounds(bounds, { padding: 60 })
-
+    // REMOVE old markers
+    markersRef.current.forEach((marker) => {
+      marker.remove()
     })
+    markersRef.current = []
+
+    // mapInstance.on('load', () => {
+    mapInstance.addSource('route', {
+      type: 'geojson',
+      data: routeGeoJson,
+    })
+
+    const layer = {
+      id: 'route-points',
+      source: 'route',
+      type: 'circle',
+      paint: {
+        'circle-radius': 4,
+        'circle-color': [
+          'interpolate',
+          ['linear'],
+          ['get', 'speed'],
+          ...speedStops.flat(),
+        ],
+      },
+    }
+
+    mapInstance.addLayer(layer)
+
+    layersRef.current.push(layer)
+
+    const bounds = routeGeoJson.features.reduce((bounds, feature) => {
+      return bounds.extend(feature.geometry.coordinates)
+    }, new maplibregl.LngLatBounds(routeGeoJson.features[0].geometry.coordinates, routeGeoJson.features[0].geometry.coordinates))
+
+    mapInstance.fitBounds(bounds, { padding: 60 })
+
+    // })
 
     // Add stops markers
     stops.forEach((stop) => {
@@ -97,6 +107,32 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
       markersRef.current.push(marker)
     })
 
+    // const point = drivePoints[currentPosition]
+    // const latitude = point.lat
+    // const longitude = point.long
+
+    // const el = document.createElement('div')
+    // el.className = 'truck-marker'
+    // el.style.transform = 'rotate(0deg)'
+    // el.style.width = '20px'
+    // el.style.height = '20px'
+    // el.innerHTML = `<img src=${icons.Truck} alt='truck' />`
+
+    // const marker = new maplibregl.Marker({ element: el })
+    //   .setLngLat([longitude, latitude])
+    //   .addTo(mapInstance)
+    // setTruckMarker(marker)
+
+  }, [routeGeoJson]);
+
+  useEffect(() => {
+    if (!mapInstance || !drivePoints[currentPosition]) return;
+
+    //remove old truck marker if present
+    if (truckMarker) {
+      truckMarker.remove()
+    }
+
     const point = drivePoints[currentPosition]
     const latitude = point.lat
     const longitude = point.long
@@ -113,7 +149,11 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
       .addTo(mapInstance)
     setTruckMarker(marker)
 
-  }, [routeGeoJson]);
+    // if (currentPosition > 0) {
+    //   mapInstance.panTo([longitude, latitude], { duration: 100, easing: (t) => t * (2 - t) })
+    // }
+
+  }, [mapInstance, drivePoints, currentPosition])
 
   useEffect(() => {
     if (!mapInstance || !routeGeoJson) return;
@@ -167,25 +207,106 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
       restoreLayers();
       restoreMarkers();
     })
-  }, [mapInstance, mapStyle]);
+  }, [mapStyle]);
 
   const restoreLayers = () => {
-    if (mapInstance.getSource('route')) {
-      mapInstance.getSource('route').setData(routeGeoJson)
-    } else {
-      mapInstance.addSource('route', {
-        type: 'geojson',
-        data: routeGeoJson,
-      })
-      layersRef.current.forEach((layer) => {
-        mapInstance.addLayer(layer)
-      })
+    if (mapInstance.getLayer('route-points')) {
+      mapInstance.removeLayer('route-points')
     }
+    if (mapInstance.getSource('route')) {
+      mapInstance.removeSource('route')
+    }
+
+    const getColorExpression = () => {
+      if (heatmapOption === 'Speed') {
+        return [
+          'interpolate',
+          ['linear'],
+          ['get', 'speed'],
+          0, 'red',
+          30, 'orange',
+          50, 'yellow',
+          80, 'green'
+        ]
+      } else if (heatmapOption === 'Mileage') {
+        return [
+          'interpolate',
+          ['linear'],
+          ['get', 'mileage'],
+          -1, 'red',
+          0, 'orange',
+          1, 'yellow',
+          7, 'green'
+        ]
+      }
+    }
+
+    mapInstance.addSource('route', {
+      type: 'geojson',
+      data: routeGeoJson,
+    })
+
+    const layer = {
+      id: 'route-points',
+      source: 'route',
+      type: 'circle',
+      paint: {
+        'circle-radius': 4,
+        'circle-color': getColorExpression(),
+      },
+    }
+
+    mapInstance.addLayer(layer)
+
+    layersRef.current.push(layer)
   }
 
   const restoreMarkers = () => {
+    if (!mapInstance || !stops) return;
+
     markersRef.current.forEach((marker) => {
-      marker.addTo(mapInstance)
+      marker.remove()
+    })
+    markersRef.current = []
+
+    // Add stops markers
+    stops.forEach((stop) => {
+      const el = document.createElement('div')
+      el.className = 'custom-marker'
+      el.id = 'custom-marks'
+
+      const IconComponent = getMarkerIcon(stop.type_new)
+
+      const root = createRoot(el)
+      root.render(
+        <div className='pin-base'>
+          <PinBase
+            fill={getMarkerColor(stop.type_new)}
+            width={30}
+            height={42}
+            style={{ position: 'absolute', top: 0, left: 0 }}
+          />
+          <div className='pin-icon'>
+            {IconComponent &&
+              <IconComponent
+                width={18}
+                height={18}
+                fill={getIconColor(stop.type_new)}
+                style={{ position: 'absolute', top: 6 }}
+              />}
+          </div>
+        </div>
+      )
+
+      const popupContent = createPopupContent(stop)
+
+      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+        .setLngLat([stop.longitude, stop.latitude])
+        .setPopup(new maplibregl.Popup().setDOMContent(popupContent))
+        .addTo(mapInstance)
+
+      markersRef.current.push(marker)
+
     })
   }
 

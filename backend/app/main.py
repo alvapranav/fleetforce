@@ -21,6 +21,16 @@ async def get_stops(tractor_id: str, arrival_datetime: str, to_arrival_datetime:
     else:
         raise HTTPException(status_code=404, detail="Stops not found")
     
+@app.get("/api/tractor_trips/{tractorId}")
+async def get_tractor_trips(tractorId: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(text("SELECT * FROM trips WHERE tractor_id = :tractor_id"), 
+                 {"tractor_id": tractorId})
+    trips = result.fetchall()
+    if trips:
+        return [row._asdict() for row in trips]
+    else:
+        raise HTTPException(status_code=404, detail="Trips not found")
+    
 @app.get("/api/trip/{tractor_id}/{arrival_datetime}")
 async def get_trip(tractor_id: str, arrival_datetime: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(text("SELECT * FROM trips WHERE tractor_id = :tractor_id  AND arrival_datetime = :arrival_datetime"), 

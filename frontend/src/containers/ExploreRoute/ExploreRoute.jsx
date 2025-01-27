@@ -9,9 +9,10 @@ import './ExploreRoute.css'
 
 
 const ExploreRoute = () => {
-    const {tractorId, arrivalDate, toArrivalDate} = useParams()
+    const { tractorId, arrivalDate, toArrivalDate } = useParams()
     const mapContainerRef = useRef(null)
     const map = useRef(null)
+    const markersRef = useRef([])
     const [mapInstance, setMapInstance] = useState(null)
     const [trips, setTrips] = useState(null);
     const [stops, setStops] = useState([]);
@@ -28,6 +29,7 @@ const ExploreRoute = () => {
     const [unitTank, setUnitTank] = useState(null)
     const [animationSpeed, setAnimationSpeed] = useState(1)
     const [heatmapOption, setHeatmapOption] = useState('Speed')
+    const [tripKey, setTripKey] = useState(`${tractorId}-${arrivalDate}`)
 
     useEffect(() => {
         if (map.current) return;
@@ -78,6 +80,7 @@ const ExploreRoute = () => {
 
                 // const endDate = trips.to_arrival_datetime
                 // setToArrivalDate(endDate)
+
                 const ut = trips.unit_tank
                 setUnitTank(ut)
 
@@ -103,8 +106,14 @@ const ExploreRoute = () => {
 
         if (!loadingstops && stops.length > 0) {
 
+            // REMOVE old markers
+            markersRef.current.forEach((marker) => {
+                marker.remove()
+            })
+            markersRef.current = []
+
+
             // if (currentPosition === 0) {
-            console.log(stops)
             var gpsData = trips.gps
             // gpsData = JSON.parse(gpsData)
 
@@ -130,6 +139,7 @@ const ExploreRoute = () => {
                     },
                 })),
             })
+
         }
     }, [trips, stops, loadingstops]);
 
@@ -202,6 +212,11 @@ const ExploreRoute = () => {
 
     const handleToggleHeatMap = (option) => {
         setHeatmapOption(option)
+    }
+
+    const handleTripSelect = (newTractorId, newArrivalDate) => {
+        setCurrentPosition(0)
+        setTripKey(`${newTractorId}-${newArrivalDate}`)
     }
 
     const removeOldPOIs = () => {
@@ -362,6 +377,9 @@ const ExploreRoute = () => {
                     stops={stops}
                     stopIndices={stopIndices}
                     isAtStop={isAtStop}
+                    tractorId={tractorId}
+                    arrivalDate={arrivalDate}
+                    onTripSelect={handleTripSelect}
                 />
             </div>
             <div className="bottom-row">
@@ -373,6 +391,7 @@ const ExploreRoute = () => {
                     examineStop={examineStop}
                     stops={stops}
                     drivePoints={drivePoints}
+                    tripKey={tripKey}
                 />
                 <MapControls
                     onChangeMapStyle={handleChangeMapStyle}

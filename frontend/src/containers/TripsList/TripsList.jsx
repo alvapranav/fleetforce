@@ -7,7 +7,8 @@ import {
     TableBody,
     TableRow,
     TableCell,
-    TablePagination
+    TablePagination,
+    Autocomplete
 } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
@@ -50,21 +51,78 @@ const TripsList = () => {
     const [trips, setTrips] = useState([]);
     const [filteredTrips, setFilteredTrips] = useState([]);
     const [filters, setFilters] = useState({
-        tripId: '',
+        tractorId: '',
+        startDate: '',
+        endDate: '',
+    });
+    const [appliedFilters, setAppliedFilters] = useState({
         tractorId: '',
         startDate: '',
         endDate: '',
     });
     const [page, setPage] = useState(0);
     const [rowsPerPage] = useState(10);
+    const [allTractorIDs, setAllTractorIDs] = useState([]);
+    const [selectedTractorIDs, setSelectedTractorIDs] = useState([]);
+    const [minDate, setMinDate] = useState(null);
+    const [maxDate, setMaxDate] = useState(null);
     const history = useNavigate();
 
     useEffect(() => {
         const fetchTrips = async () => {
             try {
                 const response = await axios.get('/api/trips');
-                setTrips(response.data);
-                setFilteredTrips(response.data);
+                const data = response.data;
+                setTrips(data);
+                setFilteredTrips(data);
+
+                // Gather unique Tractor IDs
+                const uniqueTractorIds = [...new Set(data.map(t => t.tractor_id).filter(Boolean))];
+                setAllTractorIDs(uniqueTractorIds);
+
+                if (data.length > 0) {
+                    let earliest = null;
+                    let latest = null;
+                    data.forEach(trip => {
+                        const dep = trip.arrival_datetime ? new Date(trip.arrival_datetime) : null;
+                        const arr = trip.to_arrival_datetime ? new Date(trip.to_arrival_datetime) : null;
+                        if (dep && (!earliest || dep < earliest)) {
+                            earliest = dep;
+                        }
+                        if (arr && (!latest || arr > latest)) {
+                            latest = arr;
+                        }
+                    })
+                    
+                    setMinDate(earliest);
+                    setMaxDate(latest);
+
+                    let newStart = earliest ? earliest.toISOString().split('T')[0] : '';
+                    let newEnd = latest ? latest.toISOString().split('T')[0] : '';
+
+                    setFilters(prev => ({
+                        ...prev,
+                        startDate: newStart,
+                        endDate: newEnd,
+                    }))
+                    setAppliedFilters(prev => ({
+                        ...prev,
+                        startDate: newStart,
+                        endDate: newEnd,
+                    }))
+                } else {
+                    setFilters(prev => ({
+                        ...prev,
+                        startDate: '',
+                        endDate: '',
+                    }))
+                    setAppliedFilters(prev => ({
+                        ...prev,
+                        startDate: '',
+                        endDate: '',
+                    }))
+                }
+
             }
             catch (error) {
                 console.error('Error fetching trips', error);
@@ -83,16 +141,10 @@ const TripsList = () => {
     const applyFilters = () => {
         let filtered = [...trips];
 
-        if (filters.tripId) {
-            filtered = filtered.filter((trip) =>
-                trip.trip_ref_norm && trip.trip_ref_norm.includes(filters.tripId)
-            );
+        if (Array.isArray(filters.tractorId) && filters.tractorId.length > 0) {
+            filtered = filtered.filter((trip) => trip.tractor_id && filters.tractorId.includes(trip.tractor_id));
         }
-        if (filters.tractorId) {
-            filtered = filtered.filter((trip) =>
-                trip.tractor_id && trip.tractor_id.includes(filters.tractorId)
-            );
-        }
+
         if (filters.startDate) {
             filtered = filtered.filter((trip) =>
                 new Date(trip.arrival_datetime) >= new Date(filters.startDate)
@@ -106,6 +158,29 @@ const TripsList = () => {
 
         setFilteredTrips(filtered);
         setPage(0);
+
+        setAppliedFilters(filters);
+    };
+
+    const resetFilters = () => {
+        setSelectedTractorIDs([]);
+
+        let startVal = minDate ? minDate.toISOString().split('T')[0] : '';
+        let endVal = maxDate ? maxDate.toISOString().split('T')[0] : '';
+
+        setFilters({
+            tractorId: '',
+            startDate: startVal,
+            endDate: endVal,
+        });
+        setAppliedFilters({
+            tractorId: '',
+            startDate: startVal,
+            endDate: endVal,
+        });
+        setFilteredTrips(trips);
+        setPage(0);
+
     };
 
     const handleExplore = (trip) => {
@@ -121,27 +196,40 @@ const TripsList = () => {
     // Slice rows for pagination
     const currentRows = filteredTrips.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
+    const filtersChanged = JSON.stringify(appliedFilters) !== JSON.stringify(filters);
+
     return (
         <div>
             <h1>Trip List</h1>
-            <div className='filters' style={{ marginBottom: '1rem' }}>
-                <TextField
-                    name='tripId'
-                    label='Trip ID'
-                    value={filters.tripId}
-                    onChange={handleFilterChange}
-                    variant='outlined'
-                    size='small'
-                    style={{ marginRight: '10px' }}
-                />
-                <TextField
-                    name='tractorId'
-                    label='Tractor ID'
-                    value={filters.tractorId}
-                    onChange={handleFilterChange}
-                    variant='outlined'
-                    size='small'
-                    style={{ marginRight: '10px' }}
+            <div className='filters'
+                style={{
+                    marginBottom: '1rem',
+                    display: 'flex',
+                    flexDirection: 'row',
+                    gap: '1rem',
+                    alighItems: 'flex-end'
+                }}>
+                <Autocomplete
+                    multiple
+                    options={allTractorIDs}
+                    value={selectedTractorIDs}
+                    onChange={(event, newValue) => {
+                        setSelectedTractorIDs(newValue);
+                        setFilters((prev) => ({ ...prev, tractorId: newValue}))
+                    }}
+                    renderInput={(params) => (
+                        <TextField
+                            {...params}
+                            variant='outlined'
+                            label='Tractor ID'
+                            size='small'
+                            InputLabelProps={{ shrink: true }}
+                            style={{ marginRight: '10px', width: '25vw' }}
+                            placeholder={selectedTractorIDs.length === 0 ? 'All' :
+                                selectedTractorIDs.length === 1 ? selectedTractorIDs[0] :
+                                    `${selectedTractorIDs.length} selected`}
+                        />
+                    )}
                 />
                 <TextField
                     name='startDate'
@@ -169,8 +257,16 @@ const TripsList = () => {
                     variant='contained'
                     color='primary'
                     onClick={applyFilters}
+                    disabled={!filtersChanged}
                 >
                     Apply Filters
+                </Button>
+                <Button
+                    variant='contained'
+                    color='secondary'
+                    onClick={resetFilters}
+                >
+                    Reset
                 </Button>
             </div>
 
