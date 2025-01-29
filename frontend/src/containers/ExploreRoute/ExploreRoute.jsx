@@ -6,6 +6,7 @@ import axios from 'axios'
 import wellknown from 'wellknown'
 import { ViewMetric, ViewRoute, PlaybackControls, MapControls } from '../../components'
 import './ExploreRoute.css'
+import { use } from 'react'
 
 
 const ExploreRoute = () => {
@@ -18,6 +19,7 @@ const ExploreRoute = () => {
     const [stops, setStops] = useState([]);
     const [loadingtrips, setLoadingTrips] = useState(true)
     const [loadingstops, setLoadingStops] = useState(true)
+    const [mapLoaded, setMapLoaded] = useState(false)
     const [routeGeoJson, setRouteGeoJson] = useState(null)
     const [drivePoints, setDrivePoints] = useState([])
     const [totalDrivePoints, setTotalDrivePoints] = useState(0)
@@ -36,7 +38,7 @@ const ExploreRoute = () => {
 
         map.current = new maplibregl.Map({
             container: mapContainerRef.current,
-            style: "https://api.maptiler.com/maps/basic-v2/style.json?key=oGOTJkyBZPxrLa145LN6",
+            style: mapStyle,
             center: [0, 0],
             zoom: 2,
         });
@@ -206,7 +208,7 @@ const ExploreRoute = () => {
     }, [currentPosition, stopIndices])
 
     const handleChangeMapStyle = (style) => {
-        mapInstance.setStyle(style)
+        // mapInstance.setStyle(style)
         setMapStyle(style)
     }
 
