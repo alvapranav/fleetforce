@@ -4,9 +4,9 @@ import { useParams } from 'react-router-dom'
 import maplibregl from 'maplibre-gl'
 import axios from 'axios'
 import wellknown from 'wellknown'
-import { ViewMetric, ViewRoute, PlaybackControls, MapControls } from '../../components'
+import { ViewMetric, ViewRoute, PlaybackControls, MapControls, FindStops } from '../../components'
+import { Button } from '@mui/material'
 import './ExploreRoute.css'
-import { use } from 'react'
 
 
 const ExploreRoute = () => {
@@ -19,7 +19,6 @@ const ExploreRoute = () => {
     const [stops, setStops] = useState([]);
     const [loadingtrips, setLoadingTrips] = useState(true)
     const [loadingstops, setLoadingStops] = useState(true)
-    const [mapLoaded, setMapLoaded] = useState(false)
     const [routeGeoJson, setRouteGeoJson] = useState(null)
     const [drivePoints, setDrivePoints] = useState([])
     const [totalDrivePoints, setTotalDrivePoints] = useState(0)
@@ -32,6 +31,11 @@ const ExploreRoute = () => {
     const [animationSpeed, setAnimationSpeed] = useState(1)
     const [heatmapOption, setHeatmapOption] = useState('Speed')
     const [tripKey, setTripKey] = useState(`${tractorId}-${arrivalDate}`)
+    const [loading, setLoading] = useState(false)
+    const [cancelSource, setCancelSource] = useState(null)
+    const [highlightTimes, setHighlightTimes] = useState([])
+    const [foundStops, setFoundStops] = useState([])
+    const [highlightMode, setHighlightMode] = useState(null)
 
     useEffect(() => {
         if (map.current) return;
@@ -221,6 +225,129 @@ const ExploreRoute = () => {
         setTripKey(`${newTractorId}-${newArrivalDate}`)
     }
 
+    const handleCancelRequest = () => {
+        if (cancelSource) {
+            cancelSource.cancel('Request cancelled by user')
+        }
+        setLoading(false)
+    }
+
+    const clearHighlightAndStops = () => {
+        setHighlightTimes([])
+        setFoundStops([])
+        setHighlightMode(null)
+    }
+
+    const toggleFuelStops = async () => {
+        if (highlightMode === 'fuel') {
+            clearHighlightAndStops()
+            return
+        } else {
+            clearHighlightAndStops()
+        }
+
+        if (!drivePoints.length || !unitTank) return;
+        // check if current fuel < 0.50
+        const currentFuelLevel = drivePoints[currentPosition].fuel
+        if (currentFuelLevel >= 0.50) {
+            console.log('Fuel level is above 50%, not searching for fuel stops')
+            return
+        }
+
+        setLoading(true)
+        const source = axios.CancelToken.source()
+        setCancelSource(source)
+
+        try {
+            const mpg = 7.0
+            const tankSize = unitTank
+            let currentFuelFrac = currentFuelLevel
+            let idx = currentPosition
+            let subRoute = []
+            let subRouteTime = []
+
+            while (idx < drivePoints.length && currentFuelFrac >= 0.15) {
+                const pt = drivePoints[idx]
+                subRoute.push({ lat: pt.lat, long: pt.long })
+                subRouteTime.push(pt.time)
+                const distMiles = pt.dist * 0.000621371
+                const usedFrac = (distMiles / mpg) / tankSize
+                currentFuelFrac -= usedFrac
+                idx++
+            }
+
+            setHighlightTimes(subRouteTime)
+
+            const resp = await axios.post('/api/findFuelStops', {
+                subRoute
+            }, { cancelToken: source.token })
+
+            const found = resp.data
+            setFoundStops(found)
+            setHighlightMode('fuel')
+        } catch (err) {
+            if (axios.isCancel(err)) {
+                console.log('Fuel search cancelled:', err.message)
+            } else {
+                console.error('Error finding fuel stops:', err)
+            }
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const toggleRestStops = async () => {
+
+        if (highlightMode === 'rest') {
+            clearHighlightAndStops()
+            return
+        } 
+
+        if (highlightMode === 'fuel') {
+            clearHighlightAndStops()
+        }
+
+        if (!drivePoints.length) return;
+        setLoading(true)
+        const source = axios.CancelToken.source()
+        setCancelSource(source)
+
+        try {
+            let currentSpeedMph = 55
+            const lastPt = drivePoints[currentPosition]
+            let distanceRemaining = currentSpeedMph * 4
+            let idx = currentPosition
+            let traveled = 0
+            let routeSeg = []
+            let routeSegTime = []
+            while (idx < drivePoints.length && distanceRemaining > 0) {
+                const pt = drivePoints[idx]
+                routeSeg.push({ lat: pt.lat, long: pt.long })
+                routeSegTime.push(pt.time)
+                const distM = pt.dist * 0.000621371
+                traveled += distM
+                distanceRemaining -= distM
+                idx++
+            }
+
+            setHighlightTimes(routeSegTime)
+
+            const resp = await axios.post('/api/findRestStops', {
+                routeSegment: routeSeg
+            }, { cancelToken: source.token })
+            setFoundStops(resp.data)
+            setHighlightMode('rest')
+        } catch (err) {
+            if (axios.isCancel(err)) {
+                console.log('Rest search cancelled:', err.message)
+            } else {
+                console.error('Error finding rest stops:', err)
+            }
+        } finally {
+            setLoading(false)
+        }
+    }
+
     const removeOldPOIs = () => {
         mapInstance.getStyle().layers.forEach((layer) => {
             if (layer.id.includes('poi-layer')) {
@@ -371,6 +498,9 @@ const ExploreRoute = () => {
                     drivePoints={drivePoints}
                     examineStop={examineStop}
                     heatmapOption={heatmapOption}
+                    highlightTimes={highlightTimes}
+                    foundStops={foundStops}
+                    highlightMode={highlightMode}
                 />
                 <ViewMetric
                     currentPosition={currentPosition}
@@ -404,7 +534,36 @@ const ExploreRoute = () => {
                     animationSpeed={animationSpeed}
                     onAnimationSpeedChange={setAnimationSpeed}
                 />
+                <div style={{ marginLeft: '20px' }}>
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={toggleFuelStops}
+                        style={{ margin: '10px' }}
+                        disabled={!drivePoints[currentPosition] ||
+                            (drivePoints[currentPosition].fuel >= 0.50 && highlightMode !== 'fuel')}
+                    > {highlightMode === 'fuel' ? 'Clear Fuel' : 'Find Fuel'}
+                    </Button>
+                    <Button
+                        variant="contained"
+                        color="secondary"
+                        onClick={toggleRestStops}
+                        style={{ margin: '10px' }}
+                    >
+                        {highlightMode === 'rest' ? 'Clear Rest' : 'Find Rest'}
+                    </Button>
+                </div>
             </div>
+
+            {loading && (
+                <div className='loading-overlay'>
+                    <div className='loading-content'>
+                        <div className='spinner'></div>
+                        <p>Loading, please wait...</p>
+                        <button onClick={handleCancelRequest}>Cancel</button>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

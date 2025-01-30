@@ -60,4 +60,124 @@ app.add_middleware(
     allow_headers=["*"]
 )
     
+def build_linestring_wkt(routePoints):
+    """
+    routePoints is a list of {lat: float, long: float} or similar.
+    Returns 'LINESTRING(lon lat, lon lat, ...)' in WKT.
+    """
+    if not routePoints:
+        return None
+    coords_list = []
+    for pt in routePoints:
+        lon = pt["long"]
+        lat = pt["lat"]
+        coords_list.append(f"{lon} {lat}")
+    coords_str = ", ".join(coords_list)
+    return f"LINESTRING({coords_str})"
 
+# End of helper
+
+from pydantic import BaseModel
+from typing import List, Optional
+
+class FuelStopsRequest(BaseModel):
+    subRoute: List[dict]  # e.g. [{lat, long, dist, ...}, ...]
+
+class RestStopsRequest(BaseModel):
+    routeSegment: List[dict]
+
+@app.post("/api/findFuelStops")
+async def find_fuel_stops(req: FuelStopsRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Takes a subRoute array of lat/long points for the partial route.
+    Builds a corridor using e.g. 1 mile buffer.
+    Finds all rows in 'fuel' that intersect that corridor,
+    groups by location_id, returning min(unit_price) and trafficCount.
+    """
+    if not req.subRoute:
+        return []
+
+    corridor_dist_meters = 3218.69  # 2 mile in meters
+    linestring = build_linestring_wkt(req.subRoute)
+
+    if not linestring:
+        return []
+
+    query = text("""
+        WITH routegeom AS (
+          SELECT ST_Buffer(
+            ST_GeomFromText(:linestring, 4326)::geography,
+            :dist
+          )::geometry AS corridor
+        ),
+        fpts AS (
+          SELECT *,
+                 ST_SetSRID(ST_MakePoint(longitude, latitude), 4326) as ptgeom
+          FROM fuel
+          WHERE longitude IS NOT NULL AND latitude IS NOT NULL
+        )
+        SELECT
+          location_id,
+          location_name,
+          MIN(unit_price) as unit_price,
+          COUNT(*) as traffic_count,
+          AVG(longitude) as lon,
+          AVG(latitude) as lat
+        FROM fpts, routegeom
+        WHERE ST_Intersects(ptgeom, corridor)
+        GROUP BY location_id, location_name
+    """)
+
+    result = await db.execute(query, {
+        "linestring": linestring,
+        "dist": corridor_dist_meters
+    })
+    rows = result.fetchall()
+    if rows:
+        return [row._asdict() for row in rows]
+    else:
+        raise HTTPException(status_code=404, detail="Fuel Stops not found")
+
+@app.post("/api/findRestStops")
+async def find_rest_stops(req: RestStopsRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Takes a routeSegment array of lat/long points for the partial route.
+    Builds corridor, finds 'places' with highway='rest_area' that intersects.
+    """
+    if not req.routeSegment:
+        return []
+
+    corridor_dist_meters = 3218.69  # 2 mile in meters
+    linestring = build_linestring_wkt(req.routeSegment)
+
+    if not linestring:
+        return []
+
+    query = text("""
+        WITH routegeom AS (
+          SELECT ST_Buffer(
+            ST_GeomFromText(:linestring, 4326)::geography,
+            :dist
+          )::geometry AS corridor
+        )
+        SELECT
+          hash_index,
+          name,
+          amenity,
+          highway,
+          ST_X(coords::geometry) as lon,
+          ST_Y(coords::geometry) as lat
+        FROM places, routegeom
+        WHERE highway='rest_area'
+          AND ST_Intersects(coords::geometry, corridor)
+    """)
+
+    result = await db.execute(query, {
+        "linestring": linestring,
+        "dist": corridor_dist_meters
+    })
+    rows = result.fetchall()
+    if rows:
+        return [row._asdict() for row in rows]
+    else:
+        raise HTTPException(status_code=404, detail="Fuel Stops not found")

@@ -7,15 +7,13 @@ import { icons } from '../../constants'
 import PinBase from '../../assets/location-pin-solid'
 import { use } from 'react'
 
-const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentPosition, mapStyle, drivePoints, examineStops, heatmapOption }) => {
+const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentPosition, mapStyle, drivePoints, examineStops, heatmapOption, highlightTimes, foundStops, highlightMode }) => {
   const layersRef = useRef([])
   const markersRef = useRef([])
   const [truckMarker, setTruckMarker] = useState(null)
 
   useEffect(() => {
     if (!mapInstance || !routeGeoJson) return;
-
-    console.log('reAddRouteAndStops')
 
     reAddRouteAndStops(
       mapInstance,
@@ -91,6 +89,96 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
     });
 
   }, [mapStyle]);
+
+  useEffect(() => {
+    if (!mapInstance) return;
+
+    if (mapInstance.getLayer('route-highlight')) {
+      mapInstance.removeLayer('route-highlight')
+    }
+
+    if (mapInstance.getSource('route-highlight')) {
+      mapInstance.removeSource('route-highlight')
+    }
+
+    if (!highlightTimes || highlightTimes.length===0) return;
+
+    if (!routeGeoJson) return;
+
+    const highlightFeatures = routeGeoJson.features.filter(f => 
+      highlightTimes.includes(f.properties.timestamp)
+    )
+    if (!highlightFeatures.length) return;
+
+    const highlightGeo = {
+      type: 'FeatureCollection',
+      features: highlightFeatures
+    }
+    let color = 'orange'
+    if (highlightMode === 'rest') {
+      color = 'blue'
+    }
+
+    mapInstance.addSource('route-highlight', {
+      type: 'geojson',
+      data: highlightGeo
+    })
+
+    mapInstance.addLayer({
+      id: 'route-highlight',
+      source: 'route-highlight',
+      type: 'circle',
+      paint: {
+        'circle-radius': 6,
+        'circle-color': color
+      }
+    })
+  }, [highlightTimes, highlightMode])
+
+  useEffect(() => {
+    if (!mapInstance) return;
+
+    if (mapInstance.getLayer('found-stops')) {
+      mapInstance.removeLayer('found-stops')
+    }
+
+    if (mapInstance.getSource('found-stops')) {
+      mapInstance.removeSource('found-stops')
+    }
+
+    if (!foundStops || !foundStops.length) return;
+
+    const fsGeo = {
+      type: 'FeatureCollection',
+      features: foundStops.map(s => ({
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [s.lon, s.lat]
+        },
+        properties: {
+          name: s.location_name,
+          unit_price: s.unit_price,
+          traffic: s.traffic_count,
+        }
+      }))
+    }
+
+    mapInstance.addSource('found-stops', {
+      type: 'geojson',
+      data: fsGeo
+    })
+    let color = (highlightMode === 'fuel') ? '#FF00FF' : '#00FFFF'
+    mapInstance.addLayer({
+      id: 'found-stops',
+      source: 'found-stops',
+      type: 'circle',
+      paint: {
+        'circle-radius': 6,
+        'circle-color': color
+      }
+    })
+  }, [foundStops, highlightMode])
 
   const getMarkerIcon = (type) => {
     // Return the icon based on the type
