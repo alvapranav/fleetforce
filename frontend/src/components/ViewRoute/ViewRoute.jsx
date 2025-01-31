@@ -101,11 +101,11 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
       mapInstance.removeSource('route-highlight')
     }
 
-    if (!highlightTimes || highlightTimes.length===0) return;
+    if (!highlightTimes || highlightTimes.length === 0) return;
 
     if (!routeGeoJson) return;
 
-    const highlightFeatures = routeGeoJson.features.filter(f => 
+    const highlightFeatures = routeGeoJson.features.filter(f =>
       highlightTimes.includes(f.properties.timestamp)
     )
     if (!highlightFeatures.length) return;
@@ -138,133 +138,156 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
   useEffect(() => {
     if (!mapInstance) return;
 
-    if (mapInstance.getLayer('found-stops')) {
-      mapInstance.removeLayer('found-stops')
+    if (mapInstance.__foundStopsMarkers) {
+      mapInstance.__foundStopsMarkers.forEach(m => m.remove())
     }
-
-    if (mapInstance.getSource('found-stops')) {
-      mapInstance.removeSource('found-stops')
-    }
+    mapInstance.__foundStopsMarkers = []
 
     if (!foundStops || !foundStops.length) return;
 
-    const fsGeo = {
-      type: 'FeatureCollection',
-      features: foundStops.map(s => ({
-        type: 'Feature',
-        geometry: {
-          type: 'Point',
-          coordinates: [s.lon, s.lat]
-        },
-        properties: {
-          name: s.location_name,
-          unit_price: s.unit_price,
-          traffic: s.traffic_count,
-        }
-      }))
+    let minPrice = null
+    if (highlightMode === 'fuel') {
+      const prices = foundStops.map(s => s.unit_price).filter(p => p != null)
+      if (prices.length) {
+        minPrice = Math.min(...prices)
+      }
     }
 
-    mapInstance.addSource('found-stops', {
-      type: 'geojson',
-      data: fsGeo
-    })
-    let color = (highlightMode === 'fuel') ? '#FF00FF' : '#00FFFF'
-    mapInstance.addLayer({
-      id: 'found-stops',
-      source: 'found-stops',
-      type: 'circle',
-      paint: {
-        'circle-radius': 6,
-        'circle-color': color
+    foundStops.forEach(stop => {
+      const el = document.createElement('div')
+      el.className = 'found-stop-marker'
+
+      let IconComponent = (highlightMode === 'fuel') ? icons.GasPump : icons.Bed
+      let pinColor = (highlightMode === 'fuel') ? '#ffbb98' : '#8fb6ff'
+
+      if (highlightMode === 'fuel' && minPrice != null && stop.unit_price === minPrice) {
+        pinColor = 'green'
       }
+
+      const root = createRoot(el)
+      root.render(
+        <div className="pin-base">
+          <PinBase fill={pinColor} width={30} height={42} />
+          <div className="pin-icon">
+            {IconComponent && <IconComponent fill={'#000'} />}
+          </div>
+        </div>
+      )
+
+      const popup = new maplibregl.Popup({ offset: 25 })
+      let popupHTML = '';
+      if (highlightMode==='fuel') {
+        popupHTML = `
+          <strong>Location:</strong> ${stop.location_name || ''}<br>
+          <strong>Price:</strong> $${stop.unit_price.toFixed(2)}<br>
+          <strong>Traffic:</strong> ${stop.traffic_count || ''}<br>
+          `
+      } else {
+        popupHTML = `
+        <strong>Name:</strong> ${stop.location_name || ''}<br>
+        <strong>Highway:</strong> ${stop.highway || ''}<br>
+        <strong>Amenity:</strong> ${stop.amenity || ''}<br>
+        <strong>Building:</strong> ${stop.building || ''}<br>
+        <strong>Shop:</strong> ${stop.shop || ''}<br>
+        `
+      }
+      popup.setHTML(popupHTML)
+
+      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+        .setLngLat([stop.longitude, stop.latitude])
+        .setPopup(popup)
+        .addTo(mapInstance)
+
+      mapInstance.__foundStopsMarkers.push(marker)
     })
+
   }, [foundStops, highlightMode])
 
-  const getMarkerIcon = (type) => {
-    // Return the icon based on the type
-    switch (type) {
-      case 'start':
-        return icons.Home
-      case 'end':
-        return icons.Checkered
-      case 'fuel':
-        return icons.GasPump
-      case 'docking':
-        return icons.Ramp
-      case 'overnight rest':
-        return icons.Bed
-      case 'short rest':
-        return icons.Meal
-      case 'fuel_ext':
-        return icons.GasPump
-      case 'warehouse':
-        return icons.Warehouse
-      default:
-        return icons.Flag
+    const getMarkerIcon = (type) => {
+      // Return the icon based on the type
+      switch (type) {
+        case 'start':
+          return icons.Home
+        case 'end':
+          return icons.Checkered
+        case 'fuel':
+          return icons.GasPump
+        case 'docking':
+          return icons.Ramp
+        case 'overnight rest':
+          return icons.Bed
+        case 'short rest':
+          return icons.Meal
+        case 'fuel_ext':
+          return icons.GasPump
+        case 'warehouse':
+          return icons.Warehouse
+        default:
+          return icons.Flag
+      }
     }
-  }
 
-  const getMarkerColor = (type) => {
-    switch (type) {
-      case 'start':
-        return '#FFA500'
-      case 'end':
-        return '#2E8B57'
-      case 'fuel':
-        return '#FFD700'
-      case 'fuel_ext':
-        return '#FFC107'
-      case 'docking':
-        return '#1E90FF'
-      case 'overnight rest':
-        return '#9370DB'
-      case 'warehouse':
-        return '#9370DB'
-      case 'short rest':
-        return '#1E90FF'
-      default:
-        return '#1E90FF'
+    const getMarkerColor = (type) => {
+      switch (type) {
+        case 'start':
+          return '#FFA500'
+        case 'end':
+          return '#2E8B57'
+        case 'fuel':
+          return '#FFD700'
+        case 'fuel_ext':
+          return '#FFC107'
+        case 'docking':
+          return '#1E90FF'
+        case 'overnight rest':
+          return '#9370DB'
+        case 'warehouse':
+          return '#9370DB'
+        case 'short rest':
+          return '#1E90FF'
+        default:
+          return '#1E90FF'
+      }
     }
-  }
 
-  const getIconColor = (type) => {
-    switch (type) {
-      case 'start':
-        return '#995C00'
-      case 'end':
-        return '#1C5A3C'
-      case 'fuel':
-        return '#997300'
-      case 'fuel_ext':
-        return '#8F6A04'
-      case 'docking':
-        return '#0F4A7A'
-      case 'overnight rest':
-        return '#4D2A73'
-      case 'warehouse':
-        return '#4D2A73'
-      case 'short rest':
-        return '#0F4A7A'
-      default:
-        return '#0F4A7A'
+    const getIconColor = (type) => {
+      switch (type) {
+        case 'start':
+          return '#995C00'
+        case 'end':
+          return '#1C5A3C'
+        case 'fuel':
+          return '#997300'
+        case 'fuel_ext':
+          return '#8F6A04'
+        case 'docking':
+          return '#0F4A7A'
+        case 'overnight rest':
+          return '#4D2A73'
+        case 'warehouse':
+          return '#4D2A73'
+        case 'short rest':
+          return '#0F4A7A'
+        default:
+          return '#0F4A7A'
+      }
     }
-  }
 
-  const createPopupContent = (stop) => {
-    const container = document.createElement('div')
-    container.className = 'popup-content'
+    const createPopupContent = (stop) => {
+      const container = document.createElement('div')
+      container.className = 'popup-content'
 
-    const isFuelStop = stop.type_new === 'fuel'
+      const isFuelStop = stop.type_new === 'fuel'
 
-    const arrivalTime = new Date(stop.arrival_datetime).toLocaleString()
-    const departureTime = new Date(stop.departure_datetime).toLocaleString()
+      const arrivalTime = new Date(stop.arrival_datetime).toLocaleString()
+      const departureTime = new Date(stop.departure_datetime).toLocaleString()
 
-    const dwellTimeMinutes = stop.dwell_time
-    const dwellHours = Math.floor(dwellTimeMinutes / 3600)
-    const dwellMinutes = Math.floor((dwellTimeMinutes % 3600) / 60)
-    const dwellTimeFormatted = `${dwellHours}h ${dwellMinutes}m`
+      const dwellTimeMinutes = stop.dwell_time
+      const dwellHours = Math.floor(dwellTimeMinutes / 3600)
+      const dwellMinutes = Math.floor((dwellTimeMinutes % 3600) / 60)
+      const dwellTimeFormatted = `${dwellHours}h ${dwellMinutes}m`
 
-    container.innerHTML = `
+      container.innerHTML = `
       <h3>${capitalizeFirstLetter(stop.type_new)}</h3>
       <p"><strong>Arrival Time:</strong> ${arrivalTime}</p>
       <p"><strong>Departure Time:</strong> ${departureTime}</p>
@@ -283,27 +306,27 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
       <a href="https://www.google.com/maps?q=${stop.latitude},${stop.longitude}" target="_blank">View on Google Maps</a>
       `;
 
-    return container
-  }
+      return container
+    }
 
-  const capitalizeFirstLetter = (string) => {
-    return string
-      .split(' ')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ')
-  }
+    const capitalizeFirstLetter = (string) => {
+      return string
+        .split(' ')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+    }
 
-  mapInstance && mapInstance.on('click', 'route-points', (e) => {
-    const coordinates = e.features[0].geometry.coordinates.slice()
-    const lng = coordinates[0]
-    const lat = coordinates[1]
-    const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lng}`
-    const arrivalTime = new Date(e.features[0].properties.timestamp).toLocaleString()
+    mapInstance && mapInstance.on('click', 'route-points', (e) => {
+      const coordinates = e.features[0].geometry.coordinates.slice()
+      const lng = coordinates[0]
+      const lat = coordinates[1]
+      const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lng}`
+      const arrivalTime = new Date(e.features[0].properties.timestamp).toLocaleString()
 
-    const popupContent = document.createElement('div')
-    popupContent.className = 'popup-content';
+      const popupContent = document.createElement('div')
+      popupContent.className = 'popup-content';
 
-    popupContent.innerHTML = `
+      popupContent.innerHTML = `
       <h3>GPS Data</h3>
       <p> Timestamp: ${arrivalTime}</p>
       <p> Latitude: ${lat.toFixed(6)}</p>
@@ -314,151 +337,151 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
       <a href="${googleMapsUrl}" target="_blank">View on Google Maps</a>
     `
 
-    new maplibregl.Popup()
-      .setLngLat(coordinates)
-      .setDOMContent(popupContent)
-      .addTo(mapInstance)
-
-  })
-
-  mapInstance && mapInstance.on('mouseenter', 'route-points', () => {
-    mapInstance.getCanvas().style.cursor = 'pointer'
-  })
-
-  mapInstance && mapInstance.on('mouseleave', 'route-points', () => {
-    mapInstance.getCanvas().style.cursor = ''
-  })
-
-  useEffect(() => {
-    if (!mapInstance || !drivePoints[currentPosition]) return;
-
-    const point = drivePoints[currentPosition]
-    const latitude = point.lat
-    const longitude = point.long
-
-    if (!truckMarker) {
-      const el = document.createElement('div')
-      el.className = 'truck-marker'
-      el.style.transform = 'rotate(0deg)'
-      el.style.width = '30px'
-      el.style.height = '30px'
-      el.innerHTML = `<img src=${icons.Truck} alt='truck' />`
-
-      const marker = new maplibregl.Marker({ element: el })
-        .setLngLat([longitude, latitude])
+      new maplibregl.Popup()
+        .setLngLat(coordinates)
+        .setDOMContent(popupContent)
         .addTo(mapInstance)
-      setTruckMarker(marker)
-    } else {
-      truckMarker.setLngLat([longitude, latitude])
-    }
 
-    if (currentPosition > 0) {
-      mapInstance.panTo([longitude, latitude], { duration: 100, easing: (t) => t * (2 - t) })
-      // mapInstance.easeTo({center: [longitude, latitude], duration: 600, easing: (t) => t * (2 - t)})
-    } else {
-      const bounds = routeGeoJson.features.reduce((bounds, feature) => {
-        return bounds.extend(feature.geometry.coordinates)
-      }, new maplibregl.LngLatBounds(routeGeoJson.features[0].geometry.coordinates, routeGeoJson.features[0].geometry.coordinates))
+    })
 
-      mapInstance.fitBounds(bounds, { padding: 60 })
-    }
+    mapInstance && mapInstance.on('mouseenter', 'route-points', () => {
+      mapInstance.getCanvas().style.cursor = 'pointer'
+    })
 
-  }, [currentPosition, examineStops])
+    mapInstance && mapInstance.on('mouseleave', 'route-points', () => {
+      mapInstance.getCanvas().style.cursor = ''
+    })
 
-  // (Place this near the bottom of ViewRoute.js, after your imports or after the component code)
-  function reAddRouteAndStops(
-    mapInstance,
-    routeGeoJson,
-    stops,
-    markersRef,
-    heatmapOption
-  ) {
-    if (!mapInstance || !routeGeoJson) return;
+    useEffect(() => {
+      if (!mapInstance || !drivePoints[currentPosition]) return;
 
-    // 1) Remove any old layer/source
-    if (mapInstance.getLayer('route-points')) {
-      mapInstance.removeLayer('route-points');
-    }
-    if (mapInstance.getSource('route')) {
-      mapInstance.removeSource('route');
-    }
+      const point = drivePoints[currentPosition]
+      const latitude = point.lat
+      const longitude = point.long
 
-    // 2) Remove old markers
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current = [];
+      if (!truckMarker) {
+        const el = document.createElement('div')
+        el.className = 'truck-marker'
+        el.style.transform = 'rotate(0deg)'
+        el.style.width = '30px'
+        el.style.height = '30px'
+        el.innerHTML = `<img src=${icons.Truck} alt='truck' />`
 
-    // 3) Add route source/layer with correct color
-    const getColorExpression = () => {
-      if (heatmapOption === 'Speed') {
-        return [
-          'interpolate',
-          ['linear'],
-          ['get', 'speed'],
-          0, 'red',
-          30, 'orange',
-          50, 'yellow',
-          80, 'green',
-        ];
+        const marker = new maplibregl.Marker({ element: el })
+          .setLngLat([longitude, latitude])
+          .addTo(mapInstance)
+        setTruckMarker(marker)
       } else {
-        return [
-          'interpolate',
-          ['linear'],
-          ['get', 'mileage'],
-          -1, 'red',
-          0, 'orange',
-          1, 'yellow',
-          7, 'green',
-        ];
+        truckMarker.setLngLat([longitude, latitude])
       }
-    };
 
-    mapInstance.addSource('route', {
-      type: 'geojson',
-      data: routeGeoJson,
-    });
-    mapInstance.addLayer({
-      id: 'route-points',
-      source: 'route',
-      type: 'circle',
-      paint: {
-        'circle-radius': 4,
-        'circle-color': getColorExpression(),
-      },
-    });
+      if (currentPosition > 0) {
+        mapInstance.panTo([longitude, latitude], { duration: 100, easing: (t) => t * (2 - t) })
+        // mapInstance.easeTo({center: [longitude, latitude], duration: 600, easing: (t) => t * (2 - t)})
+      } else {
+        const bounds = routeGeoJson.features.reduce((bounds, feature) => {
+          return bounds.extend(feature.geometry.coordinates)
+        }, new maplibregl.LngLatBounds(routeGeoJson.features[0].geometry.coordinates, routeGeoJson.features[0].geometry.coordinates))
 
-    // 5) Add stop markers
-    stops.forEach((stop) => {
-      const el = document.createElement('div');
-      el.className = 'custom-marker';
+        mapInstance.fitBounds(bounds, { padding: 60 })
+      }
 
-      const IconComponent = getMarkerIcon(stop.type_new);
+    }, [currentPosition, examineStops])
 
-      const root = createRoot(el);
-      root.render(
-        <div className="pin-base">
-          <PinBase fill={getMarkerColor(stop.type_new)} width={30} height={42} />
-          <div className="pin-icon">
-            {IconComponent && <IconComponent fill={getIconColor(stop.type_new)} />}
+    // (Place this near the bottom of ViewRoute.js, after your imports or after the component code)
+    function reAddRouteAndStops(
+      mapInstance,
+      routeGeoJson,
+      stops,
+      markersRef,
+      heatmapOption
+    ) {
+      if (!mapInstance || !routeGeoJson) return;
+
+      // 1) Remove any old layer/source
+      if (mapInstance.getLayer('route-points')) {
+        mapInstance.removeLayer('route-points');
+      }
+      if (mapInstance.getSource('route')) {
+        mapInstance.removeSource('route');
+      }
+
+      // 2) Remove old markers
+      markersRef.current.forEach((m) => m.remove());
+      markersRef.current = [];
+
+      // 3) Add route source/layer with correct color
+      const getColorExpression = () => {
+        if (heatmapOption === 'Speed') {
+          return [
+            'interpolate',
+            ['linear'],
+            ['get', 'speed'],
+            0, 'red',
+            30, 'orange',
+            50, 'yellow',
+            80, 'green',
+          ];
+        } else {
+          return [
+            'interpolate',
+            ['linear'],
+            ['get', 'mileage'],
+            -1, 'red',
+            0, 'orange',
+            1, 'yellow',
+            7, 'green',
+          ];
+        }
+      };
+
+      mapInstance.addSource('route', {
+        type: 'geojson',
+        data: routeGeoJson,
+      });
+      mapInstance.addLayer({
+        id: 'route-points',
+        source: 'route',
+        type: 'circle',
+        paint: {
+          'circle-radius': 4,
+          'circle-color': getColorExpression(),
+        },
+      });
+
+      // 5) Add stop markers
+      stops.forEach((stop) => {
+        const el = document.createElement('div');
+        el.className = 'custom-marker';
+
+        const IconComponent = getMarkerIcon(stop.type_new);
+
+        const root = createRoot(el);
+        root.render(
+          <div className="pin-base">
+            <PinBase fill={getMarkerColor(stop.type_new)} width={30} height={42} />
+            <div className="pin-icon">
+              {IconComponent && <IconComponent fill={getIconColor(stop.type_new)} />}
+            </div>
           </div>
-        </div>
-      );
+        );
 
-      const popupContent = createPopupContent(stop);
+        const popupContent = createPopupContent(stop);
 
-      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
-        .setLngLat([stop.longitude, stop.latitude])
-        .setPopup(new maplibregl.Popup().setDOMContent(popupContent))
-        .addTo(mapInstance);
+        const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+          .setLngLat([stop.longitude, stop.latitude])
+          .setPopup(new maplibregl.Popup().setDOMContent(popupContent))
+          .addTo(mapInstance);
 
-      markersRef.current.push(marker);
-    });
+        markersRef.current.push(marker);
+      });
+    }
+
+    return (
+      <div className='map-wrap'>
+        <div ref={mapContainerRef} className='map' />
+      </div>
+    )
   }
-
-  return (
-    <div className='map-wrap'>
-      <div ref={mapContainerRef} className='map' />
-    </div>
-  )
-}
 
 export default ViewRoute

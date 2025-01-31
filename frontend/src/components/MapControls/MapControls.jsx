@@ -15,7 +15,7 @@ const MapControls = ({ onChangeMapStyle, onExamineStop, examineStop, isAtStop, o
         defaultValue="Speed" onChange={(e) => onToggleHeatmap(e.target.value)}
       >
         <MenuItem value="Speed">Speed</MenuItem>
-        <MenuItem value="Mileage">MPH</MenuItem>
+        <MenuItem value="Mileage">MPG</MenuItem>
       </Select>
       <Button
         onClick={onExamineStop}

@@ -121,8 +121,8 @@ async def find_fuel_stops(req: FuelStopsRequest, db: AsyncSession = Depends(get_
           location_name,
           MIN(unit_price) as unit_price,
           COUNT(*) as traffic_count,
-          AVG(longitude) as lon,
-          AVG(latitude) as lat
+          AVG(longitude) as longitude,
+          AVG(latitude) as latitude
         FROM fpts, routegeom
         WHERE ST_Intersects(ptgeom, corridor)
         GROUP BY location_id, location_name
@@ -165,8 +165,8 @@ async def find_rest_stops(req: RestStopsRequest, db: AsyncSession = Depends(get_
           name,
           amenity,
           highway,
-          ST_X(coords::geometry) as lon,
-          ST_Y(coords::geometry) as lat
+          ST_X(coords::geometry) as longitude,
+          ST_Y(coords::geometry) as latitude
         FROM places, routegeom
         WHERE highway='rest_area'
           AND ST_Intersects(coords::geometry, corridor)
