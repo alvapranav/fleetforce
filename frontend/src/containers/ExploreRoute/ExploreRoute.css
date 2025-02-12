@@ -1,3 +1,14 @@
+.header{
+    display: flex;
+    justify-content: space-between;
+    align-items:center;
+    width: 85vw;
+    height: 5vh;
+    background-color: #007cbb;
+    color: white;
+    margin: 10px;
+    border-radius: 10px;
+}
 .heading{
     margin-left: 3vw;
 }
@@ -6,6 +17,13 @@
     display: flex;
     flex-direction: column;
     height: 70vh;
+}
+
+.view-metrics{
+  display: flex;
+  flex-direction: column;
+  height: 70vh;
+  overflow-y: auto;
 }
 
 .top-row{

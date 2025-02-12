@@ -6,6 +6,7 @@ import axios from 'axios'
 import wellknown from 'wellknown'
 import { ViewMetric, ViewRoute, PlaybackControls, MapControls, FindStops } from '../../components'
 import { Button } from '@mui/material'
+import { useNavigate } from 'react-router-dom'
 import './ExploreRoute.css'
 
 
@@ -36,6 +37,7 @@ const ExploreRoute = () => {
     const [highlightTimes, setHighlightTimes] = useState([])
     const [foundStops, setFoundStops] = useState([])
     const [highlightMode, setHighlightMode] = useState(null)
+    const navigate = useNavigate()
 
     useEffect(() => {
         if (map.current) return;
@@ -259,8 +261,9 @@ const ExploreRoute = () => {
         setCancelSource(source)
 
         try {
+            const effectiveUnitTank = unitTank ?? 150
             const mpg = 7.0
-            const tankSize = unitTank
+            const tankSize = effectiveUnitTank
             let currentFuelFrac = currentFuelLevel
             let idx = currentPosition
             let subRoute = []
@@ -301,7 +304,7 @@ const ExploreRoute = () => {
         if (highlightMode === 'rest') {
             clearHighlightAndStops()
             return
-        } 
+        }
 
         if (highlightMode === 'fuel') {
             clearHighlightAndStops()
@@ -482,11 +485,21 @@ const ExploreRoute = () => {
 
     return (
         <div className="explore-route">
-            {stops.length > 0 ? (
-                <h1 className='heading'>Tractor ID: {stops[0].tractor_id}</h1>
-            ) : (
-                <h1>Loading...</h1>
-            )}
+            <div className="header">
+                {stops.length > 0 ? (
+                    <h1 className='heading'>Tractor ID: {stops[0].tractor_id}</h1>
+                ) : (
+                    <h1>Loading...</h1>
+                )}
+
+                <Button
+                    variant="outlined"
+                    onClick={() => navigate('/')}
+                    style={{ marginBottom: '10px', marginLeft: '10px', color: 'white', marginTop: '10px' }}
+                >
+                    &larr; Back
+                </Button>
+            </div>
             <div className="top-row">
                 <ViewRoute
                     mapContainerRef={mapContainerRef}
@@ -512,6 +525,7 @@ const ExploreRoute = () => {
                     tractorId={tractorId}
                     arrivalDate={arrivalDate}
                     onTripSelect={handleTripSelect}
+                    onResetPlayback={() => setCurrentPosition(0)}
                 />
             </div>
             <div className="bottom-row">
@@ -533,6 +547,7 @@ const ExploreRoute = () => {
                     onToggleHeatmap={handleToggleHeatMap}
                     animationSpeed={animationSpeed}
                     onAnimationSpeedChange={setAnimationSpeed}
+                    unitTank={unitTank}
                 />
                 <div style={{ marginLeft: '20px' }}>
                     <Button

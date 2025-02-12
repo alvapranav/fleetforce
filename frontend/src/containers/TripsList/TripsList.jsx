@@ -60,6 +60,18 @@ const TripsList = () => {
         tractorId: '',
         startDate: '',
         endDate: '',
+        minDistance: '',
+        maxDistance: '',
+        minDwell: '',
+        maxDwell: '',
+        minFuelSpend: '',
+        maxFuelSpend: '',
+        minFuelIdle: '',
+        maxFuelIdle: '',
+        minStops: '',
+        maxStops: '',
+        minMpg: '',
+        maxMpg: '',
     });
     const [appliedFilters, setAppliedFilters] = useState({
         tractorId: '',
@@ -99,7 +111,7 @@ const TripsList = () => {
                             latest = arr;
                         }
                     })
-                    
+
                     setMinDate(earliest);
                     setMaxDate(latest);
 
@@ -221,7 +233,7 @@ const TripsList = () => {
                     value={selectedTractorIDs}
                     onChange={(event, newValue) => {
                         setSelectedTractorIDs(newValue);
-                        setFilters((prev) => ({ ...prev, tractorId: newValue}))
+                        setFilters((prev) => ({ ...prev, tractorId: newValue }))
                     }}
                     renderInput={(params) => (
                         <TextField
@@ -259,6 +271,15 @@ const TripsList = () => {
                     size='small'
                     style={{ marginRight: '10px' }}
                 />
+                <TextField
+                    name='minDistance'
+                    label='Min Distance (mi)'
+                    value={filters.minDistance}
+                    onChange={(e) => setFilters({ ...filters, minDistance: e.target.value })}
+                    variant='outlined'
+                    size='small'
+                    style={{ marginRight: '10px' }}
+                />
                 <Button
                     variant='contained'
                     color='primary'
@@ -276,6 +297,7 @@ const TripsList = () => {
                 </Button>
             </div>
 
+            {/* <Table style={{ width: '100%', tableLayout: 'fixed' }}> */}
             <Table>
                 <TableHead>
                     <TableRow>
@@ -342,7 +364,7 @@ const TripsList = () => {
                                 <TableCell>{formatDollar(dollarFuel) || 0}</TableCell>
                                 <TableCell>{trip.fuel_burned_drive.toFixed(2)}</TableCell>
                                 <TableCell>{trip.fuel_burned_idling.toFixed(2) || 0}</TableCell>
-                                <TableCell>{trip.mpg}</TableCell>
+                                <TableCell>{trip.mpg.toFixed(2)}</TableCell>
                             </TableRow>
                         );
                     })}

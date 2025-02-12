@@ -1,7 +1,7 @@
 import React from 'react'
 import { Select, MenuItem, Button, Slider, Typography } from '@mui/material'
 
-const MapControls = ({ onChangeMapStyle, onExamineStop, examineStop, isAtStop, onToggleHeatmap, onAnimationSpeedChange, animationSpeed }) => {
+const MapControls = ({ onChangeMapStyle, onExamineStop, examineStop, isAtStop, onToggleHeatmap, onAnimationSpeedChange, animationSpeed, unitTank }) => {
   return (
     <div className='map-controls'>
       {/* <h4 variant='h4'>Map Controls</h4> */}
@@ -15,7 +15,7 @@ const MapControls = ({ onChangeMapStyle, onExamineStop, examineStop, isAtStop, o
         defaultValue="Speed" onChange={(e) => onToggleHeatmap(e.target.value)}
       >
         <MenuItem value="Speed">Speed</MenuItem>
-        <MenuItem value="Mileage">MPG</MenuItem>
+        <MenuItem value="Mileage" disabled={!unitTank}>MPG</MenuItem>
       </Select>
       <Button
         onClick={onExamineStop}

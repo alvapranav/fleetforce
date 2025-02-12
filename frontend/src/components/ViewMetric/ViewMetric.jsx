@@ -30,7 +30,7 @@ const formatDwellHours = (seconds) => {
   return hrs.toFixed(2); // e.g. "3.45"
 };
 
-const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices, isAtStop, tractorId, arrivalDate, onTripSelect }) => {
+const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices, isAtStop, tractorId, arrivalDate, onTripSelect, onResetPlayback }) => {
   const [activeTab, setActiveTab] = useState(0)
 
   const [metrics, setMetrics] = useState({
@@ -226,7 +226,7 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
       return <p>No tractor trips available</p>
     }
     return (
-      <div style={{ overflowY: 'auto', maxHeight: '300px' }}>
+      <div >
         {tractorTrips.map((tripItem, idx) => {
           const isCurrent = tripItem.arrival_datetime === arrivalDate
           const continuous = checkIfContinuous(idx)
@@ -280,6 +280,8 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
 
   const handleTimelineClick = (tripItem) => {
     history(`/explore/${tractorId}/${tripItem.arrival_datetime}/${tripItem.to_arrival_datetime}`)
+
+    onResetPlayback && onResetPlayback()
 
     onTripSelect && onTripSelect()
   }
