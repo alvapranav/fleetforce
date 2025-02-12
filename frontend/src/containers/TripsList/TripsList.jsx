@@ -47,6 +47,12 @@ const formatDollar = (amt) => {
     return `$${amt.toFixed(2)}`;
 };
 
+// Format dollar value
+const formatFloat = (val) => {
+    if (!val) return '';
+    return `${val.toFixed(2)}`;
+};
+
 const TripsList = () => {
     const [trips, setTrips] = useState([]);
     const [filteredTrips, setFilteredTrips] = useState([]);
@@ -274,7 +280,6 @@ const TripsList = () => {
                 <TableHead>
                     <TableRow>
                         <TableCell>Action</TableCell>
-                        <TableCell>Trip ID</TableCell>
                         <TableCell>Tractor ID</TableCell>
                         <TableCell>Origin City</TableCell>
                         <TableCell>Origin State</TableCell>
@@ -289,14 +294,17 @@ const TripsList = () => {
                         <TableCell>Short Stops</TableCell>
                         <TableCell>Long Stops</TableCell>
                         <TableCell>Dwell (hrs)</TableCell>
-                        <TableCell>Fuel (gal)</TableCell>
-                        <TableCell>Fuel ($)</TableCell>
+                        <TableCell>Fuel Purchased (gal)</TableCell>
+                        <TableCell>Fuel Purchased ($)</TableCell>
+                        <TableCell>Fuel Burned Driving (gal)</TableCell>
+                        <TableCell>Fuel Burned Idle (gal)</TableCell>
+                        <TableCell>Fuel Efficiency (mpg)</TableCell>
                     </TableRow>
                 </TableHead>
 
                 <TableBody>
                     {currentRows.map((trip) => {
-                        const rowKey = `${trip.trip_ref_norm}_${trip.arrival_datetime}`;
+                        const rowKey = `${trip.trip_id}_${trip.arrival_datetime}`;
                         const distMiles = metersToMiles(trip.distance_travelled);
                         const timeStr = formatTimeTaken(trip.time_taken);
                         const dwellHrs = formatDwellHours(trip.total_dwell_time);
@@ -316,7 +324,6 @@ const TripsList = () => {
                                         Explore
                                     </Button>
                                 </TableCell>
-                                <TableCell>{trip.trip_ref_norm}</TableCell>
                                 <TableCell>{trip.tractor_id}</TableCell>
                                 <TableCell>{trip.city}</TableCell>
                                 <TableCell>{trip.state}</TableCell>
@@ -332,7 +339,10 @@ const TripsList = () => {
                                 <TableCell>{trip.total_long_stops || 0}</TableCell>
                                 <TableCell>{dwellHrs}</TableCell>
                                 <TableCell>{trip.volume_fuel_purchased || 0}</TableCell>
-                                <TableCell>{formatDollar(dollarFuel)}</TableCell>
+                                <TableCell>{formatDollar(dollarFuel) || 0}</TableCell>
+                                <TableCell>{trip.fuel_burned_drive.toFixed(2)}</TableCell>
+                                <TableCell>{trip.fuel_burned_idling.toFixed(2) || 0}</TableCell>
+                                <TableCell>{trip.mpg}</TableCell>
                             </TableRow>
                         );
                     })}

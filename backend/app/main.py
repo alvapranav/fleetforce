@@ -43,9 +43,10 @@ async def get_trip(tractor_id: str, arrival_datetime: str, db: AsyncSession = De
     
 @app.get("/api/trips")
 async def get_trips_in_stops(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(text("""SELECT tractor_id, trip_ref_norm, country, state, city, to_country, to_state, to_city, arrival_datetime,
+    result = await db.execute(text("""SELECT tractor_id, trip_id, country, state, city, to_country, to_state, to_city, arrival_datetime,
                                     to_arrival_datetime, distance_travelled, time_taken, total_stops, total_fuel_stops, total_short_stops,
-                                    total_long_stops, total_dwell_time, volume_fuel_purchased, dollar_fuel_purchased FROM trips"""))
+                                    total_long_stops, total_dwell_time, volume_fuel_purchased, dollar_fuel_purchased, fuel_burned_drive, 
+                                    fuel_burned_idling, fuel_burned_total, mpg FROM trips"""))
     trip = result.fetchall()
     if trip:
         return [row._asdict() for row in trip]

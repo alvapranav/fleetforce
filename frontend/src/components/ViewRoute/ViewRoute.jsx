@@ -427,10 +427,9 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
             'interpolate',
             ['linear'],
             ['get', 'mileage'],
-            -1, 'red',
             0, 'orange',
-            1, 'yellow',
-            7, 'green',
+            5, 'yellow',
+            10, 'green',
           ];
         }
       };
