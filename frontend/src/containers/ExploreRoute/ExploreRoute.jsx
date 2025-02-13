@@ -6,7 +6,7 @@ import axios from 'axios'
 import wellknown from 'wellknown'
 import { ViewMetric, ViewRoute, PlaybackControls, MapControls, FindStops } from '../../components'
 import { Button } from '@mui/material'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import './ExploreRoute.css'
 
 
@@ -38,6 +38,7 @@ const ExploreRoute = () => {
     const [foundStops, setFoundStops] = useState([])
     const [highlightMode, setHighlightMode] = useState(null)
     const navigate = useNavigate()
+    const { state } = useLocation()
 
     useEffect(() => {
         if (map.current) return;
@@ -224,7 +225,7 @@ const ExploreRoute = () => {
 
     const handleTripSelect = (newTractorId, newArrivalDate) => {
         setCurrentPosition(0)
-        setTripKey(`${newTractorId}-${newArrivalDate}`)
+        setTripKey(`${newTractorId}-${newArrivalDate}-${Date.now()}`)
     }
 
     const handleCancelRequest = () => {
@@ -494,10 +495,17 @@ const ExploreRoute = () => {
 
                 <Button
                     variant="outlined"
-                    onClick={() => navigate('/')}
+                    onClick={() => {
+                        if (state?.filters) {
+                            console.log('back to trips')
+                            navigate('/', { state: { ...state } })
+                        } else {
+                            navigate('/')
+                        }
+                    }}
                     style={{ marginBottom: '10px', marginLeft: '10px', color: 'white', marginTop: '10px' }}
                 >
-                    &larr; Back
+                    &larr; Back to Trips
                 </Button>
             </div>
             <div className="top-row">
@@ -549,7 +557,8 @@ const ExploreRoute = () => {
                     onAnimationSpeedChange={setAnimationSpeed}
                     unitTank={unitTank}
                 />
-                <div style={{ marginLeft: '20px' }}>
+                <div className='optimizer'>
+                    <h4>Optimizer</h4>
                     <Button
                         variant="contained"
                         color="primary"

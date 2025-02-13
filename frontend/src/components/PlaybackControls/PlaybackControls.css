@@ -1,5 +1,11 @@
 .playback-controls {
-    width: 50vw;
+    border: 1px solid #ccc;
+    margin-top: 10px;
+    padding-right: 20px;
+    padding-left: 20px;
+    width: 65vw;
+    border-radius: 8px;
+    background-color: #f9f9f9;
 }
 
 .buttons {
@@ -11,6 +17,7 @@
 
 .slider {
     display: flex;
+    flex-direction: row;
     margin-top: 20px;
 }
 

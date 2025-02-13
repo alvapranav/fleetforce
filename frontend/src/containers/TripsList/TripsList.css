@@ -1,0 +1,16 @@
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 85vw;
+    height: 5vh;
+    background-color: #007cbb;
+    color: white;
+    margin: 10px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+}
+
+.heading {
+    margin-left: 3vw;
+}

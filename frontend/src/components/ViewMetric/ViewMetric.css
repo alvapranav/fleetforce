@@ -1,0 +1,14 @@
+.view-metrics {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.view-metrics .MuiTabs-root {
+    flex-shrink: 0;
+}
+
+.tab-content{
+    flex: 1;
+    overflow-y: auto;
+}

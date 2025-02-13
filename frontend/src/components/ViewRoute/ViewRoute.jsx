@@ -317,6 +317,7 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
   }
 
   mapInstance && mapInstance.on('click', 'route-points', (e) => {
+
     try {
       const coordinates = e.features[0].geometry.coordinates.slice()
       const lng = coordinates[0]
@@ -346,7 +347,7 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
 
     } catch (error) {
       console.error(error)
-      alert("Data not available for this point")
+      return
     }
   })
 

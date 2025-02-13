@@ -2,6 +2,7 @@ import { Tabs, Tab, LinearProgress, Box, Typography } from '@mui/material'
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
+import './ViewMetric.css'
 
 // Helper to convert distance in meters to miles
 const metersToMiles = (m) => {
@@ -305,6 +306,7 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
         <Tab label='Tractor Timeline' />
         {isAtStop && <Tab label='Stop Metrics' />}
       </Tabs>
+      <div className='tab-content'>
       <TabPanel value={activeTab} index={0}>
         <div className='trip-metrics'>
           <p>Distance Driven: {metrics.distanceDriven.toFixed(2)} miles</p>
@@ -423,6 +425,7 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
           </TabPanel>
         )
       }
+      </div>
     </div >
   )
 }

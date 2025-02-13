@@ -175,6 +175,7 @@ const PlaybackControls = ({ totalDrivePoints, onPositionChange, stopIndices, ani
 
   return (
     <div className='playback-controls'>
+      <h4 style={{ textAlign: 'center', margin: '10px' }}>Trip Playback Controls</h4>
       <div className='buttons'>
         <IconButton onClick={handlePrevious}>
           <SkipPrevious />
@@ -199,7 +200,7 @@ const PlaybackControls = ({ totalDrivePoints, onPositionChange, stopIndices, ani
           step={0.01}
           valueLabelDisplay='auto'
         />
-        <span style={{ marginLeft: '20px', marginRight: '20px' }}>{percentage}%</span>
+        <span style={{ marginLeft: '30px', marginRight: '30px' }}>{percentage}%</span>
       </div>
     </div>
   )

@@ -1,0 +1,45 @@
+.map-controls {
+    border: 1px solid #ccc;
+    margin-top: 10px;
+    /* padding: 10px; */
+    width: 20vw;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+}
+
+.map-controls h4 {
+    text-align: center;
+    margin-top: 5px;
+}
+
+.dropdowns {
+    display: flex;
+    margin: -10px;
+    flex-direction: row;
+    justify-content: center;
+    gap: 2rem;
+}
+
+.dropdown-child h5 {
+    text-align: center;
+    margin: 5px;
+}
+
+.other-controls {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    padding-left: 10px;
+    padding-right: 10px;
+    gap: 1rem;
+}
+
+.slider {
+    display: flex;
+    flex-direction: column;
+}
+
+.slider h5 {
+    text-align: center;
+    margin: 5px;
+}
