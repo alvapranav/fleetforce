@@ -11,41 +11,8 @@ A lightweight prototype that demonstrates:
 1. [Folder Structure](#folder-structure)
 2. [Prerequisites](#prerequisites)
 3. [Setup & Installation](#setup--installation)
-4. [Running Locally](#running-locally)
-5. [Deployment](#deployment)
-6. [Usage & Highlights](#usage--highlights)
-7. [Troubleshooting](#troubleshooting)
-8. [License](#license)
 
 ---
-
-## Folder Structure
-
-fleetforce/
-│
-├── backend/
-│   ├── main.py            # FastAPI entry point
-│   ├── database.py        # SQLAlchemy/Async DB config
-│   ├── models.py          # DB models if any
-│   └── ...
-│
-├── frontend/
-│   ├── public/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── PlaybackControls.js
-│   │   │   ├── MapControls.js
-│   │   │   ├── ViewRoute.js
-│   │   │   └── ViewMetric.js
-│   │   ├── pages/
-│   │   │   ├── TripsList.js
-│   │   │   └── ExploreRoute.js
-│   │   └── ...
-│   ├── package.json
-│   └── ...
-│
-├── docker-compose.yml    # (Optional) if you containerize
-└── README.md             # This file
 
 ## Prerequisites
 
@@ -62,3 +29,14 @@ fleetforce/
    ```bash
    git clone https://your-org.example.com/fleet-intelligence-prototype.git
    cd fleet-intelligence-prototype
+
+
+2. Install Backend Dependencies
+    ```bash
+    cd backend
+    pip install -r requirements.txt
+
+3. Install Frontend Dependencies
+    ```bash
+    cd ../frontend
+    npm install
