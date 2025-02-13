@@ -18,7 +18,14 @@
 .slider {
     display: flex;
     flex-direction: row;
-    margin-top: 20px;
+    margin-top: 15px;
+}
+
+.slider label{
+    margin: 0px;
+    margin-bottom: 10px;
+    align-self: center;
+    color: #6b6c6d;
 }
 
 .custom-marker-1 {

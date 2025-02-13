@@ -200,7 +200,7 @@ const PlaybackControls = ({ totalDrivePoints, onPositionChange, stopIndices, ani
           step={0.01}
           valueLabelDisplay='auto'
         />
-        <span style={{ marginLeft: '30px', marginRight: '30px' }}>{percentage}%</span>
+        <label>{percentage}%</label>
       </div>
     </div>
   )
