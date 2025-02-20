@@ -13,7 +13,8 @@ async def get_db():
 
 @app.get("/api/stops/{tractor_id}/{arrival_datetime}/{to_arrival_datetime}")
 async def get_stops(tractor_id: str, arrival_datetime: str, to_arrival_datetime: str, db: AsyncSession = Depends(get_db)):
-    result1 = await db.execute(text("SELECT * FROM stops WHERE tractor_id = :tractor_id AND arrival_datetime >= :arrival_datetime AND arrival_datetime < :to_arrival_datetime"), 
+    result1 = await db.execute(text("""SELECT * FROM stops WHERE tractor_id = :tractor_id AND arrival_datetime >= :arrival_datetime AND arrival_datetime < :to_arrival_datetime
+                                    ORDER BY arrival_datetime"""), 
                  {"tractor_id": tractor_id, "arrival_datetime": arrival_datetime, "to_arrival_datetime": to_arrival_datetime})
     stops = result1.fetchall()
     if stops:

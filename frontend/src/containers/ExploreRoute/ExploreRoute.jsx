@@ -97,6 +97,8 @@ const ExploreRoute = () => {
                 const stopsData = response.data
                 setStops(stopsData)
 
+                console.log(stops)
+
                 setLoadingStops(false)
 
             }
@@ -201,6 +203,8 @@ const ExploreRoute = () => {
                 }
             }
         })
+
+        console.log('Drive points:', drivePoints)
 
         return { drivePoints, stopIndices }
 
