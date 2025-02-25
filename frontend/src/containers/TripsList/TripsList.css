@@ -14,3 +14,14 @@
 .heading {
     margin-left: 3vw;
 }
+
+.chart-row{
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.chart-container{
+    width: 100%;
+    height: 220px;
+}

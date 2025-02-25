@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
 import './ViewMetric.css'
+import { use } from 'react'
 
 // Helper to convert distance in meters to miles
 const metersToMiles = (m) => {
@@ -52,6 +53,7 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
     milesFromLastStop: 0,
     fuelBeforeStop: 0,
     fuelAfterStop: 0,
+    fuelUsed: 0,
     locationName: '',
     unitPrice: 0,
     totalCost: 0,
@@ -111,37 +113,46 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
 
   useEffect(() => {
     const calculateMetrics = () => {
+      if (!drivePoints.length) return
+
       const points = drivePoints.slice(0, currentPosition + 1)
-      let fuel_index = 0
       let distanceDriven = 0
-      let timeTaken = new Date(drivePoints[currentPosition].time) - new Date(stops[0].arrival_datetime)
-      let fuelConsumed = (stops[0].fuel_tank_percent_before - stops[0].fuel_tank_percent_after) * unitTank
+      const firstTime = new Date(stops[0].arrival_datetime)
+      const lastTime = new Date(drivePoints[currentPosition].time)
+      const timeTaken = (lastTime - firstTime) / 60000
+
       let totalDwellTime = stops[0].dwell_time / 60
+      let fuelConsumed = (stops[0].fuel_tank_percent_before - stops[0].fuel_tank_percent_after) > 0 ? (stops[0].fuel_tank_percent_before - stops[0].fuel_tank_percent_after) * unitTank : 0
       let fuelPurchased = 0
       let amountSpent = 0
+      let fuelLevel = drivePoints[currentPosition].fuel * 100
+      let lastFuelIndex = 0
+      let fuelUsed = []
 
       points.forEach((currentPoint, i) => {
-        if (i!== 0) {
+        if (i > 0) {
           distanceDriven += currentPoint.dist * 0.000621371
-        }
 
-        const stopPoint = stops[stopIndices.findIndex((index) => index === i)]
+          const stopPoint = stops[stopIndices.findIndex((index) => index === i)]
 
-        if (stopPoint) {
-          if (i !== 0) {
+          if (stopPoint) {
             totalDwellTime += stopPoint.dwell_time / 60
-          }
-          fuelPurchased += stopPoint.quantity
-          amountSpent += stopPoint.total_cost
-          fuelConsumed += (stopPoint.fuel_tank_percent_before - currentPoint.fuel) * unitTank
-          if (stopPoint.type_new == 'fuel' || stopPoint.type_new == 'fuel_ext') {
-            fuelConsumed += (drivePoints[fuel_index].fuel - stopPoint.fuel_tank_percent_before) * unitTank
-            fuel_index = i + 1
+            fuelUsed.push((points[lastFuelIndex].fuel - stopPoint.fuel_tank_percent_before) > 0 ? (drivePoints[lastFuelIndex].fuel - stopPoint.fuel_tank_percent_before) * unitTank : 0)
+
+            if (stopPoint.type_new == 'fuel' || stopPoint.type_new == 'fuel_ext') {
+              fuelPurchased += stopPoint.quantity || 0
+              amountSpent += stopPoint.total_cost || 0
+            }
+            else {
+              fuelConsumed += (stopPoint.fuel_tank_percent_before - currentPoint.fuel) > 0 ? (stopPoint.fuel_tank_percent_before - currentPoint.fuel) * unitTank : 0
+            }
+            lastFuelIndex = i
           }
         }
       })
 
-      fuelConsumed += (drivePoints[fuel_index].fuel - drivePoints[currentPosition].fuel) * unitTank
+      fuelUsed.push((points[lastFuelIndex].fuel - points[currentPosition].fuel) > 0 ? (points[lastFuelIndex].fuel - points[currentPosition].fuel) * unitTank : 0)
+      fuelConsumed += fuelUsed.reduce((a, b) => a + b, 0)
 
       const stopPoint = stops[stopIndices.findIndex((index) => index === currentPosition)]
 
@@ -152,6 +163,7 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
         const milesFromLastStop = currentPosition === 0 ? 0 : stopPoint.miles_travelled
         const fuelBeforeStop = stopPoint.fuel_tank_percent_before * 100
         const fuelAfterStop = stopPoint.fuel_tank_percent_after * 100
+        const fuelUsed = (stopPoint.fuel_tank_percent_before - stopPoint.fuel_tank_percent_after) > 0 ? (stopPoint.fuel_tank_percent_before - stopPoint.fuel_tank_percent_after) * unitTank : 0
         if (stopPoint.type_new == 'fuel') {
           setIsFuelStop(true)
           setStopMetrics({
@@ -161,6 +173,7 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
             milesFromLastStop,
             fuelBeforeStop,
             fuelAfterStop,
+            fuelUsed,
             locationName: stopPoint.fuel_location_name,
             unitPrice: stopPoint.unit_price,
             totalCost: stopPoint.total_cost,
@@ -178,6 +191,7 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
             milesFromLastStop,
             fuelBeforeStop,
             fuelAfterStop,
+            fuelUsed,
             locationName: '',
             unitPrice: 0,
             totalCost: 0,
@@ -192,8 +206,8 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
       setMetrics((prevMetrics) => ({
         ...prevMetrics,
         distanceDriven,
-        timeTaken: timeTaken / 60000,
-        fuelLevel: drivePoints[currentPosition].fuel * 100,
+        timeTaken: timeTaken,
+        fuelLevel: fuelLevel,
         totalDwellTime,
         amountSpent,
         fuelPurchased,
@@ -414,6 +428,7 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
                     <Typography variant="body2" color="textSecondary">{stopMetrics.fuelAfterStop.toFixed(2)}%</Typography>
                   </Box>
                 </Box>
+                <p>Fuel Consumed: {stopMetrics.fuelUsed.toFixed(2)} gallons</p>
                 {isFuelStop && (
                   <>
                     <p>Location Name: {stopMetrics.locationName}</p>

@@ -15,6 +15,12 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import axios from 'axios'
 import './TripsList.css'
 
+import { Chart as ChartJS, elements, plugins, registerables, scales } from 'chart.js'
+import { Scatter } from 'react-chartjs-2'
+import annotationPlugin from 'chartjs-plugin-annotation'
+
+ChartJS.register(...registerables, annotationPlugin)
+
 // Helper to convert distance in meters to miles
 const metersToMiles = (m) => {
     if (!m) return '';
@@ -60,6 +66,7 @@ const TripsList = () => {
     const [filteredTrips, setFilteredTrips] = useState([]);
     const [filters, setFilters] = useState({
         tractorId: '',
+        tripId: '',
         startDate: '',
         endDate: '',
         minDistance: '',
@@ -77,6 +84,7 @@ const TripsList = () => {
     });
     const [appliedFilters, setAppliedFilters] = useState({
         tractorId: '',
+        tripId: '',
         startDate: '',
         endDate: '',
         minDistance: '',
@@ -101,13 +109,17 @@ const TripsList = () => {
         mpg: [0, 0],
     });
     const [page, setPage] = useState(0);
-    const [rowsPerPage] = useState(10);
+    const [rowsPerPage] = useState(5);
     const [allTractorIDs, setAllTractorIDs] = useState([]);
+    const [allTripIDs, setAllTripIDs] = useState([]);
+    const [selectedTripIDs, setSelectedTripIDs] = useState([]);
     const [selectedTractorIDs, setSelectedTractorIDs] = useState([]);
     const [minDate, setMinDate] = useState(null);
     const [maxDate, setMaxDate] = useState(null);
     const history = useNavigate();
     const location = useLocation();
+
+    const [chartHighlight, setChartHighlight] = useState(null);
 
     useEffect(() => {
         const fetchTrips = async () => {
@@ -120,6 +132,9 @@ const TripsList = () => {
                 // Gather unique Tractor IDs
                 const uniqueTractorIds = [...new Set(data.map(t => t.tractor_id).filter(Boolean))];
                 setAllTractorIDs(uniqueTractorIds);
+
+                const uniqueTripIds = [...new Set(data.map(t => t.trip_id).filter(Boolean))];
+                setAllTripIDs(uniqueTripIds);
 
                 if (data.length > 0) {
                     let earliest = null;
@@ -226,6 +241,22 @@ const TripsList = () => {
         fetchTrips();
     }, []);
 
+    useEffect(() => {
+        if (!chartHighlight) {
+            setFilteredTrips(trips);
+            return
+        }
+        if (chartHighlight.tripId) {
+            const f = trips.filter(t => t.trip_id === chartHighlight.tripId)
+            setFilteredTrips(f)
+        } else if (chartHighlight.tractorId) {
+            const f = trips.filter(t => t.tractor_id === chartHighlight.tractorId)
+            setFilteredTrips(f)
+        } else {
+            setFilteredTrips(trips)
+        }
+    }, [chartHighlight, trips]);
+
     const handleFilterChange = (e) => {
         setFilters({
             ...filters,
@@ -310,10 +341,13 @@ const TripsList = () => {
                 trip.mpg <= filters.maxMpg
             );
         }
+        if (filters.tripId) {
+            filtered = filtered.filter((trip) => trip.trip_id === filters.tripId);
+        }
 
         setFilteredTrips(filtered);
         setPage(0);
-
+        setChartHighlight(null);
         setAppliedFilters(filters);
     };
 
@@ -325,6 +359,7 @@ const TripsList = () => {
 
         setFilters({
             tractorId: '',
+            tripId: '',
             startDate: startVal,
             endDate: endVal,
             minDistance: filterRanges.distance[0],
@@ -342,6 +377,7 @@ const TripsList = () => {
         });
         setAppliedFilters({
             tractorId: '',
+            tripId: '',
             startDate: startVal,
             endDate: endVal,
             minDistance: filterRanges.distance[0],
@@ -357,11 +393,12 @@ const TripsList = () => {
             minMpg: filterRanges.mpg[0],
             maxMpg: filterRanges.mpg
         });
+        setChartHighlight(null);
         setFilteredTrips(trips);
         setPage(0);
 
     };
-    
+
 
     const handleExplore = (trip) => {
         // e.g. navigate to route explorer
@@ -369,6 +406,364 @@ const TripsList = () => {
             state: { filters: appliedFilters, currentPage: page },
         });
     };
+
+    const buildTractorData = () => {
+        const result = {}
+        trips.forEach(tr => {
+            const tid = tr.tractor_id || 'Unknown'
+            if (!result[tid]) {
+                result[tid] = {
+                    totalFuelPurchased: 0,
+                    fuelingEvents: 0,
+                    sumPrice: 0,
+                    countPrice: 0,
+                    sumTankPercent: 0,
+                    countTankPercent: 0
+                }
+            }
+
+            const vol = tr.volume_fuel_purchased || 0
+            result[tid].totalFuelPurchased += vol
+            result[tid].fuelingEvents += tr.total_fuel_stops || 0
+
+            const cost = tr.dollar_fuel_purchased || 0
+            const tank_capacity = tr.unit_tank || 0
+            if (vol > 0) {
+                const price = cost / vol
+                result[tid].sumPrice += price
+                result[tid].countPrice += 1
+            }
+            if (tank_capacity > 0 && vol > 0) {
+                result[tid].sumTankPercent += vol / tank_capacity
+                result[tid].countTankPercent += 1
+            }
+
+
+        })
+
+        const finalArr = []
+        Object.keys(result).forEach(tid => {
+            const obj = result[tid]
+            const avgPrice = obj.countPrice ? (obj.sumPrice / obj.countPrice) : 0
+            const avgTankPercent = obj.countTankPercent ? (obj.sumTankPercent / obj.countTankPercent) : 0
+            finalArr.push({
+                tractorId: tid,
+                totalFuelPurchased: obj.totalFuelPurchased,
+                avgPrice: avgPrice,
+                fuelingEvents: obj.fuelingEvents,
+                avgTankPercent: avgTankPercent
+            })
+        })
+        return finalArr
+    }
+
+    const getTimeDwellData = () => {
+        return trips.map(tr => {
+            const hrs = tr.time_taken / 3600 || 0
+            const fracDwell = tr.time_taken ? (tr.total_dwell_time / tr.time_taken) * 100 : 0
+            return {
+                x: hrs,
+                y: fracDwell,
+                tripId: tr.trip_id
+            }
+        })
+    }
+
+    const timeDwellArr = getTimeDwellData()
+    const avgX_td = timeDwellArr.reduce((acc, curr) => acc + curr.x, 0) / (timeDwellArr.length || 1)
+    const avgY_td = timeDwellArr.reduce((acc, curr) => acc + curr.y, 0) / (timeDwellArr.length || 1)
+
+    const timeDwellData = {
+        datasets: [
+            {
+                label: 'Time (hrs) vs. Dwell %',
+                data: timeDwellArr,
+                backgroundColor: 'blue'
+            }
+        ]
+    }
+
+    const timeDwellOptions = {
+        responsive: true,
+        onClick: (evt, elements, chart) => {
+            if (!elements || !elements.length) return
+            const idx = elements[0].index
+            const point = timeDwellArr[idx]
+            setChartHighlight({ tripId: point.tripId })
+        },
+        scales: {
+            x: { title: { display: true, text: 'Time (hrs)' } },
+            y: {
+                title: { display: true, text: 'Dwell %' },
+                min: 0,
+                max: 110,
+                ticks: {
+                    callback: (val) => `${val}%`,
+                }
+            }
+        },
+
+        plugins: {
+            annotation: {
+                annotations: {
+                    vLine: {
+                        type: 'line',
+                        scaleID: 'x',
+                        value: avgX_td,
+                        borderColor: 'grey',
+                        borderWidth: 2,
+                        label: {
+                            display: true,
+                            content: `X=${avgX_td.toFixed(2)} hrs`,
+                            position: 'end',
+                            yAdjust: 5
+                        }
+                    },
+                    hLine: {
+                        type: 'line',
+                        scaleID: 'y',
+                        value: avgY_td,
+                        borderColor: 'grey',
+                        borderWidth: 2,
+                        label: {
+                            display: true,
+                            content: `Y=${avgY_td.toFixed(2)}%`,
+                            position: 'end',
+                            yAdjust: 17
+
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    const getFuelIdleData = () => {
+        return trips.map(tr => {
+            const fracIdle = tr.fuel_burned_total ? (tr.fuel_burned_idling / tr.fuel_burned_total) * 100 : 0
+            return {
+                x: tr.fuel_burned_total,
+                y: fracIdle,
+                tripId: tr.trip_id
+            }
+        })
+    }
+
+    const fuelIdleArr = getFuelIdleData()
+    const avgX_fi = fuelIdleArr.reduce((acc, curr) => acc + curr.x, 0) / (fuelIdleArr.length || 1)
+    const avgY_fi = fuelIdleArr.reduce((acc, curr) => acc + curr.y, 0) / (fuelIdleArr.length || 1)
+
+    const fuelIdleData = {
+        datasets: [
+            {
+                label: 'Total Fuel vs Fraction Idle',
+                data: fuelIdleArr,
+                backgroundColor: 'red'
+            }
+        ]
+    }
+
+    const fuelIdleOptions = {
+        responsive: true,
+        onClick: (evt, elements) => {
+            if (!elements || !elements.length) return
+            const idx = elements[0].index
+            const point = fuelIdleArr[idx]
+            setChartHighlight({ tripId: point.tripId })
+        },
+        scales: {
+            x: { title: { display: true, text: 'Total Fuel Burned' } },
+            y: {
+                title: { display: true, text: 'Burned Idle %' },
+                min: 0,
+                max: 110,
+                ticks: {
+                    callback: (val) => `${val}%`,
+                }
+            }
+        },
+        plugins: {
+            annotation: {
+                annotations: {
+                    vLine: {
+                        type: 'line',
+                        scaleID: 'x',
+                        value: avgX_fi,
+                        borderColor: 'grey',
+                        borderWidth: 2,
+                        label: {
+                            type: 'label',
+                            display: true,
+                            content: `X=${avgX_fi.toFixed(2)} gal`,
+                            position: 'start',
+                            xAdjust: 50
+                        }
+                    },
+                    hLine: {
+                        type: 'line',
+                        scaleID: 'y',
+                        value: avgY_fi,
+                        borderColor: 'grey',
+                        borderWidth: 2,
+                        label: {
+                            display: true,
+                            content: `Y=${avgY_fi.toFixed(2)}%`,
+                            position: 'end',
+                            yAdjust: -20
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    const tractorData = buildTractorData()
+    const avgX_fp = tractorData.reduce((acc, curr) => acc + curr.totalFuelPurchased, 0) / (tractorData.length || 1)
+    const avgY_fp = tractorData.reduce((acc, curr) => acc + curr.avgPrice, 0) / (tractorData.length || 1)
+
+    const getTractorFuelPriceData = () => {
+        return tractorData.map(tr => {
+            return {
+                x: tr.totalFuelPurchased,
+                y: tr.avgPrice,
+                tractorId: tr.tractorId
+            }
+        })
+    }
+
+    const tractorFuelPriceArr = getTractorFuelPriceData()
+
+    const tractorFuelPriceData = {
+        datasets: [
+            {
+                label: 'Total Fuel vs Avg Price',
+                data: tractorFuelPriceArr,
+                backgroundColor: 'green'
+            }
+        ]
+    }
+
+    const tractorFuelPriceOptions = {
+        responsive: true,
+        onClick: (evt, elements) => {
+            if (!elements || !elements.length) return
+            const idx = elements[0].index
+            const point = tractorFuelPriceArr[idx]
+            setChartHighlight({ tractorId: point.tractorId })
+        },
+        scales: {
+            x: { title: { display: true, text: 'Total Fuel Purchased' } },
+            y: { title: { display: true, text: 'Avg Price ($/gal)' } }
+        },
+        plugins: {
+            annotation: {
+                annotations: {
+                    vLine: {
+                        type: 'line',
+                        scaleID: 'x',
+                        value: avgX_fp,
+                        borderColor: 'grey',
+                        borderWidth: 2,
+                        label: {
+                            display: true,
+                            content: `X=${avgX_fp.toFixed(2)} gal`,
+                            postion: 'end',
+                            yAdjust: 10,
+                        }
+                    },
+                    hLine: {
+                        type: 'line',
+                        scaleID: 'y',
+                        value: avgY_fp,
+                        borderColor: 'grey',
+                        borderWidth: 2,
+                        label: {
+                            display: true,
+                            content: `Y=${avgY_fp.toFixed(2)} $/gal`,
+                            position: 'end',
+                            yAdjust: 20,
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+
+    const tractorFuelingEventsData = () => {
+        return tractorData.map(tr => ({
+            x: tr.fuelingEvents,
+            y: tr.avgTankPercent * 100,
+            tractorId: tr.tractorId
+        }))
+    }
+
+    const tractorFuelingArr = tractorFuelingEventsData()
+    const avgX_fe = tractorFuelingArr.reduce((acc, curr) => acc + curr.x, 0) / (tractorFuelingArr.length || 1)
+    const avgY_fe = tractorFuelingArr.reduce((acc, curr) => acc + curr.y, 0) / (tractorFuelingArr.length || 1)
+    const tractorFuelingData = {
+        datasets: [
+            {
+                label: 'Fueling Events vs Avg Tank %',
+                data: tractorFuelingArr,
+                backgroundColor: 'purple'
+            }
+        ]
+    }
+
+    const tractorFuelingOptions = {
+        responsive: true,
+        onClick: (evt, elements) => {
+            if (!elements || !elements.length) return
+            const idx = elements[0].index
+            const point = tractorFuelingArr[idx]
+            setChartHighlight({ tractorId: point.tractorId })
+        },
+        scales: {
+            x: { title: { display: true, text: 'Fueling Events' } },
+            y: {
+                title: { display: true, text: 'Avg Tank %' },
+                min: 0, 
+                max: 110,
+                ticks: {
+                    callback: (val) => `${val}%`,
+                }
+            }
+        },
+        plugins: {
+            annotation: {
+                annotations: {
+                    vLine: {
+                        type: 'line',
+                        scaleID: 'x',
+                        value: avgX_fe,
+                        borderColor: 'grey',
+                        borderWidth: 2,
+                        label: {
+                            display: true,
+                            content: `X=${avgX_fe.toFixed(2)} fuelups`,
+                            position: 'end',
+                            yAdjust: 10
+                        }
+                    },
+                    hLine: {
+                        type: 'line',
+                        scaleID: 'y',
+                        value: avgY_fe,
+                        borderColor: 'grey',
+                        borderWidth: 2,
+                        label: {
+                            display: true,
+                            content: `Y=${avgY_fe.toFixed(2)}%`,
+                            position: 'end',
+                            yAdjust: 20
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     // Pagination handlers
     const handleChangePage = (event, newPage) => {
@@ -525,6 +920,20 @@ const TripsList = () => {
                 </div>
             </div>
             {/* <Table style={{ width: '100%', tableLayout: 'fixed' }}> */}
+            <div className='chart-row'>
+                <div className='chart-container'>
+                    <Scatter data={timeDwellData} options={timeDwellOptions} />
+                </div>
+                <div className='chart-container'>
+                    <Scatter data={fuelIdleData} options={fuelIdleOptions} />
+                </div>
+                <div className='chart-container'>
+                    <Scatter data={tractorFuelPriceData} options={tractorFuelPriceOptions} />
+                </div>
+                <div className='chart-container'>
+                    <Scatter data={tractorFuelingData} options={tractorFuelingOptions} />
+                </div>
+            </div>
             <Table>
                 <TableHead>
                     <TableRow>
@@ -543,6 +952,7 @@ const TripsList = () => {
                         <TableCell>Short Stops</TableCell>
                         <TableCell>Long Stops</TableCell>
                         <TableCell>Dwell (hrs)</TableCell>
+                        <TableCell>Tank Capacity (gal)</TableCell>
                         <TableCell>Fuel Purchased (gal)</TableCell>
                         <TableCell>Fuel Purchased ($)</TableCell>
                         <TableCell>Fuel Burned Driving (gal)</TableCell>
@@ -587,6 +997,7 @@ const TripsList = () => {
                                 <TableCell>{trip.total_short_stops || 0}</TableCell>
                                 <TableCell>{trip.total_long_stops || 0}</TableCell>
                                 <TableCell>{dwellHrs}</TableCell>
+                                <TableCell>{formatFloat(trip.unit_tank) || 'Unknown'}</TableCell>
                                 <TableCell>{trip.volume_fuel_purchased || 0}</TableCell>
                                 <TableCell>{formatDollar(dollarFuel) || 0}</TableCell>
                                 <TableCell>{formatFloat(trip.fuel_burned_drive) || 0}</TableCell>
@@ -606,7 +1017,7 @@ const TripsList = () => {
                 rowsPerPage={rowsPerPage}
                 rowsPerPageOptions={[]}
             />
-        </div>
+        </div >
     );
 };
 
