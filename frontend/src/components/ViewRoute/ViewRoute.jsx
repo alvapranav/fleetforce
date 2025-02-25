@@ -5,7 +5,6 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import './ViewRoute.css'
 import { icons } from '../../constants'
 import PinBase from '../../assets/location-pin-solid'
-import { use } from 'react'
 
 const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentPosition, mapStyle, drivePoints, examineStops, heatmapOption, highlightTimes, foundStops, highlightMode }) => {
   const layersRef = useRef([])
@@ -217,6 +216,8 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
       case 'overnight rest':
         return icons.Bed
       case 'short rest':
+        return icons.Restroom
+      case 'short food':
         return icons.Meal
       case 'fuel_ext':
         return icons.GasPump
@@ -244,6 +245,8 @@ const ViewRoute = ({ mapContainerRef, mapInstance, stops, routeGeoJson, currentP
       case 'warehouse':
         return '#9370DB'
       case 'short rest':
+        return '#1E90FF'
+      case 'short food':
         return '#1E90FF'
       default:
         return '#1E90FF'
