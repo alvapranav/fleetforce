@@ -21,6 +21,22 @@ import annotationPlugin from 'chartjs-plugin-annotation'
 
 ChartJS.register(...registerables, annotationPlugin)
 
+ChartJS.defaults.font.family = 'Roboto, sans-serif'
+ChartJS.defaults.font.size = 12
+ChartJS.defaults.color = "#333"
+ChartJS.defaults.font.weight = 'bold'
+ChartJS.defaults.plugins.legend.labels.usePointStyle = true
+ChartJS.defaults.elements.point.radius = 3
+ChartJS.defaults.elements.point.hoverRadius = 5
+ChartJS.defaults.elements.point.borderWidth = 0.5
+
+ChartJS.defaults.plugins.tooltip.backgroundColor = 'rgba(0, 0, 0, 0.7)'
+ChartJS.defaults.plugins.tooltip.titleColor = '#fff'
+ChartJS.defaults.plugins.tooltip.bodyColor = '#fff'
+ChartJS.defaults.plugins.tooltip.borderColor = 'rgba(255, 255, 255, 0.8)'
+ChartJS.defaults.plugins.tooltip.borderWidth = 1
+
+
 // Helper to convert distance in meters to miles
 const metersToMiles = (m) => {
     if (!m) return '';
@@ -478,7 +494,9 @@ const TripsList = () => {
             {
                 label: 'Time (hrs) vs. Dwell %',
                 data: timeDwellArr,
-                backgroundColor: 'blue'
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                pointStyle: 'circle'
             }
         ]
     }
@@ -492,18 +510,35 @@ const TripsList = () => {
             setChartHighlight({ tripId: point.tripId })
         },
         scales: {
-            x: { title: { display: true, text: 'Time (hrs)' } },
+            x: {
+                title: { display: true, text: 'Time (hrs)' },
+                grid: {
+                    color: 'rgba(0, 0, 0, 0.05)',
+                }
+            },
             y: {
                 title: { display: true, text: 'Dwell %' },
                 min: 0,
                 max: 110,
                 ticks: {
                     callback: (val) => `${val}%`,
+                },
+                grid: {
+                    color: 'rgba(0, 0, 0, 0.05)',
                 }
             }
         },
 
         plugins: {
+            tooltip: {
+                callbacks: {
+                    label: (context) => {
+                        const xVal = context.parsed.x.toFixed(2)
+                        const yVal = context.parsed.y.toFixed(2)
+                        return `Hours: ${xVal}, Dwell: ${yVal}%`
+                    }
+                }
+            },
             annotation: {
                 annotations: {
                     vLine: {
@@ -534,6 +569,12 @@ const TripsList = () => {
                         }
                     }
                 }
+            },
+            legend: {
+                labels: {
+                    boxWidth: 12,
+                    boxHeight: 12,
+                }
             }
         }
     }
@@ -558,7 +599,10 @@ const TripsList = () => {
             {
                 label: 'Total Fuel vs Fraction Idle',
                 data: fuelIdleArr,
-                backgroundColor: 'red'
+                backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1,
+                pointStyle: 'circle'
             }
         ]
     }
@@ -572,17 +616,33 @@ const TripsList = () => {
             setChartHighlight({ tripId: point.tripId })
         },
         scales: {
-            x: { title: { display: true, text: 'Total Fuel Burned' } },
+            x: { title: { display: true, text: 'Total Fuel Burned' },
+                grid: {
+                    color: 'rgba(0, 0, 0, 0.05)',
+                }
+            },
             y: {
                 title: { display: true, text: 'Burned Idle %' },
                 min: 0,
                 max: 110,
                 ticks: {
                     callback: (val) => `${val}%`,
+                },
+                grid: {
+                    color: 'rgba(0, 0, 0, 0.05)',
                 }
             }
         },
         plugins: {
+            tooltip: {
+                callbacks: {
+                    label: (context) => {
+                        const xVal = context.parsed.x.toFixed(2)
+                        const yVal = context.parsed.y.toFixed(2)
+                        return `Fuel: ${xVal}, Idle: ${yVal}%`
+                    }
+                }
+            },
             annotation: {
                 annotations: {
                     vLine: {
@@ -638,7 +698,10 @@ const TripsList = () => {
             {
                 label: 'Total Fuel vs Avg Price',
                 data: tractorFuelPriceArr,
-                backgroundColor: 'green'
+                backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1,
+                pointStyle: 'circle'
             }
         ]
     }
@@ -652,10 +715,27 @@ const TripsList = () => {
             setChartHighlight({ tractorId: point.tractorId })
         },
         scales: {
-            x: { title: { display: true, text: 'Total Fuel Purchased' } },
-            y: { title: { display: true, text: 'Avg Price ($/gal)' } }
+            x: { title: { display: true, text: 'Total Fuel Purchased' },
+                grid: {
+                    color: 'rgba(0, 0, 0, 0.05)',
+                },
+            },
+            y: { title: { display: true, text: 'Avg Price ($/gal)' },
+                grid: {
+                    color: 'rgba(0, 0, 0, 0.05)',
+                },
         },
+    },
         plugins: {
+            tooltip: {
+                callbacks: {
+                    label: (context) => {
+                        const xVal = context.parsed.x.toFixed(2)
+                        const yVal = context.parsed.y.toFixed(2)
+                        return `Fuel: ${xVal}, Price: ${yVal}`
+                    }
+                }
+            },
             annotation: {
                 annotations: {
                     vLine: {
@@ -707,7 +787,10 @@ const TripsList = () => {
             {
                 label: 'Fueling Events vs Avg Tank %',
                 data: tractorFuelingArr,
-                backgroundColor: 'purple'
+                backgroundColor: 'rgba(153, 102, 255, 0.6)',
+                borderColor: 'rgba(153, 102, 255, 1)',
+                borderWidth: 1,
+                pointStyle: 'circle'
             }
         ]
     }
@@ -721,17 +804,33 @@ const TripsList = () => {
             setChartHighlight({ tractorId: point.tractorId })
         },
         scales: {
-            x: { title: { display: true, text: 'Fueling Events' } },
+            x: { title: { display: true, text: 'Fueling Events' },
+                grid: {
+                    color: 'rgba(0, 0, 0, 0.05)',
+                },
+            },
             y: {
                 title: { display: true, text: 'Avg Tank %' },
-                min: 0, 
+                min: 0,
                 max: 110,
                 ticks: {
                     callback: (val) => `${val}%`,
+                },
+                grid: {
+                    color: 'rgba(0, 0, 0, 0.05)',
                 }
             }
         },
         plugins: {
+            tooltip: {
+                callbacks: {
+                    label: (context) => {
+                        const xVal = context.parsed.x.toFixed(2)
+                        const yVal = context.parsed.y.toFixed(2)
+                        return `Events: ${xVal}, Tank: ${yVal}%`
+                    }
+                }
+            },
             annotation: {
                 annotations: {
                     vLine: {
