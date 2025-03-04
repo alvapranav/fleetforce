@@ -37,6 +37,8 @@ const ExploreRoute = () => {
     const [highlightTimes, setHighlightTimes] = useState([])
     const [foundStops, setFoundStops] = useState([])
     const [highlightMode, setHighlightMode] = useState(null)
+    const [weatherOption, setWeatherOption] = useState('None')
+    const OWM_API_KEY = '6d66a9e334393950470297fe47208de9'
     const navigate = useNavigate()
     const { state } = useLocation()
 
@@ -96,8 +98,6 @@ const ExploreRoute = () => {
                 const response = await axios.get(`/api/stops/${tractorId}/${arrivalDate}/${toArrivalDate}`)
                 const stopsData = response.data
                 setStops(stopsData)
-
-                console.log(stops)
 
                 setLoadingStops(false)
 
@@ -168,6 +168,56 @@ const ExploreRoute = () => {
         }
     }, [currentPosition, examineStop, isAtStop])
 
+    const WEATHER_SOURCE_ID = 'rainviewer-source'
+    const WEATHER_LAYER_ID = 'rainviewer-layer'
+
+    useEffect(() => {
+        if (!mapInstance) return
+
+        if (weatherOption === 'None') {
+            if (mapInstance.getLayer(WEATHER_LAYER_ID)) {
+                mapInstance.removeLayer(WEATHER_LAYER_ID)
+            }
+            if (mapInstance.getSource(WEATHER_SOURCE_ID)) {
+                mapInstance.removeSource(WEATHER_SOURCE_ID)
+            }
+            return
+        }
+
+        const currentPoint = drivePoints[currentPosition]
+        if (!currentPoint) return
+
+        const dt = new Date(currentPoint.time)
+        // const currentTimestamp = Math.floor(Date.now() / 1000)
+        const unixTimeSec = Math.floor(dt.getTime() / 1000)
+
+        const OWM_URL = `https://tile.openweathermap.org/map/${weatherOption}/{z}/{x}/{y}.png?appid=${OWM_API_KEY}`
+
+        if (mapInstance.getLayer(WEATHER_LAYER_ID)) {
+            mapInstance.removeLayer(WEATHER_LAYER_ID)
+        }
+        if (mapInstance.getSource(WEATHER_SOURCE_ID)) {
+            mapInstance.removeSource(WEATHER_SOURCE_ID)
+        }
+
+        mapInstance.addSource(WEATHER_SOURCE_ID, {
+            type: 'raster',
+            tiles: [OWM_URL],
+            tileSize: 256,
+            scheme: 'xyz'
+        })
+
+        mapInstance.addLayer({
+            id: WEATHER_LAYER_ID,
+            type: 'raster',
+            source: WEATHER_SOURCE_ID,
+            paint: {
+                'raster-opacity': 0.8
+            }
+        })
+
+    }, [mapInstance, weatherOption, currentPosition])
+
     const processGPSData = ({ gpsData, stops }) => {
         const drivePoints = [];
         const stopIndices = [];
@@ -203,8 +253,6 @@ const ExploreRoute = () => {
                 }
             }
         })
-
-        console.log('Drive points:', drivePoints)
 
         return { drivePoints, stopIndices }
 
@@ -560,6 +608,8 @@ const ExploreRoute = () => {
                     animationSpeed={animationSpeed}
                     onAnimationSpeedChange={setAnimationSpeed}
                     unitTank={unitTank}
+                    onToggleWeather={setWeatherOption}
+                    weatherOption={weatherOption}
                 />
                 <div className='optimizer'>
                     <h4>Optimizer</h4>

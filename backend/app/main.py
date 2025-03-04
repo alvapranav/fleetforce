@@ -1,10 +1,8 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import text
 from .database import async_session
-from .models import Stops, Trips, Places
-
 app = FastAPI()
 
 async def get_db():
@@ -183,3 +181,4 @@ async def find_rest_stops(req: RestStopsRequest, db: AsyncSession = Depends(get_
         return [row._asdict() for row in rows]
     else:
         raise HTTPException(status_code=404, detail="Fuel Stops not found")
+
