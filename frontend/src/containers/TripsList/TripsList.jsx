@@ -9,7 +9,9 @@ import {
     TableCell,
     TablePagination,
     Autocomplete,
-    Slider
+    Slider, 
+    Select,
+    MenuItem
 } from '@mui/material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import axios from 'axios'
@@ -130,6 +132,7 @@ const TripsList = () => {
     const [allTripIDs, setAllTripIDs] = useState([]);
     const [selectedTripIDs, setSelectedTripIDs] = useState([]);
     const [selectedTractorIDs, setSelectedTractorIDs] = useState([]);
+    const [dataMode, setDataMode] = useState('All GPS');
     const [minDate, setMinDate] = useState(null);
     const [maxDate, setMaxDate] = useState(null);
     const history = useNavigate();
@@ -140,7 +143,8 @@ const TripsList = () => {
     useEffect(() => {
         const fetchTrips = async () => {
             try {
-                const response = await axios.get('/api/trips');
+                const endpoint = dataMode === 'Dispatch' ? '/api/trips_disp' : '/api/trips';
+                const response = await axios.get(endpoint);
                 const data = response.data;
                 setTrips(data);
                 setFilteredTrips(data);
@@ -255,7 +259,7 @@ const TripsList = () => {
             }
         };
         fetchTrips();
-    }, []);
+    }, [dataMode]);
 
     useEffect(() => {
         if (!chartHighlight) {
@@ -419,7 +423,7 @@ const TripsList = () => {
     const handleExplore = (trip) => {
         // e.g. navigate to route explorer
         history(`/explore/${trip.tractor_id}/${trip.arrival_datetime}/${trip.to_arrival_datetime}`, {
-            state: { filters: appliedFilters, currentPage: page },
+            state: { filters: appliedFilters, currentPage: page, dataMode: dataMode },
         });
     };
 
@@ -947,6 +951,16 @@ const TripsList = () => {
                 >
                     Reset
                 </Button>
+                <div style={{ marginLeft: 'auto' }}>
+                    <Select
+                        value={dataMode}
+                        onChange={(e) => setDataMode(e.target.value)}
+                        size="small"
+                    >
+                        <MenuItem value="All GPS">All GPS</MenuItem>
+                        <MenuItem value="Dispatch">Dispatch</MenuItem>
+                    </Select>
+                </div>
             </div>
             <div className='slider-filters'
                 style={{ display: 'flex', flexDirection: 'row', margin: '10px' }}

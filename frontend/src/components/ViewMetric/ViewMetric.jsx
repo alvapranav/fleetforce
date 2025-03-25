@@ -32,7 +32,7 @@ const formatDwellHours = (seconds) => {
   return hrs.toFixed(2); // e.g. "3.45"
 };
 
-const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices, isAtStop, tractorId, arrivalDate, onTripSelect, onResetPlayback }) => {
+const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices, isAtStop, tractorId, arrivalDate, onTripSelect, onResetPlayback, dataMode }) => {
   const [activeTab, setActiveTab] = useState(0)
 
   const [metrics, setMetrics] = useState({
@@ -94,7 +94,9 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
       try {
         setLoadingTractorTrips(true)
 
-        const response = await axios.get(`/api/tractor_trips/${tractorId}`)
+        const endpoint = dataMode === 'Dispatch' ? `/api/tractor_trips_disp/${tractorId}` : `/api/tractor_trips/${tractorId}`
+
+        const response = await axios.get(endpoint)
         const tripsData = response.data
 
         setTractorTrips(tripsData)
@@ -109,7 +111,7 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
     }
 
     fetchTripsData()
-  }, [tractorId])
+  }, [tractorId, dataMode])
 
   useEffect(() => {
     const calculateMetrics = () => {
@@ -254,11 +256,11 @@ const ViewMetric = ({ currentPosition, drivePoints, unitTank, stops, stopIndices
               key={tripItem.arrival_datetime}
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}
             >
-              {idx > 0 && (
+              {/* {idx > 0 && (
                 continuous
-                  ? <div syle={{ width: '2px', height: '20px', backgroundColor: 'black' }} />
+                  ? <div style={{ width: '2px', height: '20px', backgroundColor: 'white' }} />
                   : <div style={{ height: '10px' }} />
-              )}
+              )} */}
 
               <div style={{
                 width: '10px',

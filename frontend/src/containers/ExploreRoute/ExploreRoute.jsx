@@ -41,6 +41,7 @@ const ExploreRoute = () => {
     const OWM_API_KEY = '6d66a9e334393950470297fe47208de9'
     const navigate = useNavigate()
     const { state } = useLocation()
+    const mode = state && state.dataMode ? state.dataMode : 'All GPS'
 
     useEffect(() => {
         if (map.current) return;
@@ -64,7 +65,8 @@ const ExploreRoute = () => {
             try {
                 setLoadingTrips(true)
 
-                const response = await axios.get(`/api/trip/${tractorId}/${arrivalDate}`)
+                const tripsEndpoint = mode === 'Dispatch' ? `/api/trip_disp/${tractorId}/${arrivalDate}` : `/api/trip/${tractorId}/${arrivalDate}`
+                const response = await axios.get(tripsEndpoint)
                 const tripsData = response.data
 
                 setTrips(tripsData[0])
@@ -94,8 +96,8 @@ const ExploreRoute = () => {
 
                 const ut = trips.unit_tank
                 setUnitTank(ut)
-
-                const response = await axios.get(`/api/stops/${tractorId}/${arrivalDate}/${toArrivalDate}`)
+                const stopsEndpoint = mode === 'Dispatch' ? `/api/stops_disp/${tractorId}/${arrivalDate}/${toArrivalDate}` : `/api/stops/${tractorId}/${arrivalDate}/${toArrivalDate}`
+                const response = await axios.get(stopsEndpoint)
                 const stopsData = response.data
                 setStops(stopsData)
 
@@ -113,7 +115,7 @@ const ExploreRoute = () => {
     }, [mapInstance, tractorId, arrivalDate, trips, loadingtrips, toArrivalDate]);
 
     useEffect(() => {
-        // if (!mapInstance || loadingstops) return;
+        if (!mapInstance || loadingstops) return;
 
         if (!loadingstops && stops.length > 0) {
 
@@ -122,7 +124,6 @@ const ExploreRoute = () => {
                 marker.remove()
             })
             markersRef.current = []
-
 
             // if (currentPosition === 0) {
             var gpsData = trips.gps
@@ -241,7 +242,7 @@ const ExploreRoute = () => {
                     const stopPoint = {
                         lat: stop.latitude,
                         long: stop.longitude,
-                        time: point.Dt,
+                        time: stop.departure_datetime,
                         fuel: stop.fuel_tank_percent_after,
                         dist: cumulativeDistance
                     }
@@ -586,6 +587,7 @@ const ExploreRoute = () => {
                     arrivalDate={arrivalDate}
                     onTripSelect={handleTripSelect}
                     onResetPlayback={() => setCurrentPosition(0)}
+                    dataMode={mode}
                 />
             </div>
             <div className="bottom-row">

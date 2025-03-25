@@ -52,6 +52,51 @@ async def get_trips_in_stops(db: AsyncSession = Depends(get_db)):
     else:
         raise HTTPException(status_code=404, detail="Trip not found")
 
+# In main.py, add these endpoints below your current ones
+
+@app.get("/api/trips_disp")
+async def get_trips_disp_in_stops(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(text("""SELECT tractor_id, trip_id, country, state, city, to_country, to_state, to_city, arrival_datetime,
+                                    to_arrival_datetime, distance_travelled, time_taken, total_stops, total_fuel_stops, total_short_stops,
+                                    total_long_stops, total_dwell_time, volume_fuel_purchased, dollar_fuel_purchased, fuel_burned_drive, 
+                                    fuel_burned_idling, fuel_burned_total, mpg, unit_tank FROM trips_disp"""))
+    trips = result.fetchall()
+    if trips:
+        return [row._asdict() for row in trips]
+    else:
+        raise HTTPException(status_code=404, detail="Trip not found")
+
+@app.get("/api/stops_disp/{tractor_id}/{arrival_datetime}/{to_arrival_datetime}")
+async def get_stops_disp(tractor_id: str, arrival_datetime: str, to_arrival_datetime: str, db: AsyncSession = Depends(get_db)):
+    result1 = await db.execute(text("""SELECT * FROM stops_disp WHERE tractor_id = :tractor_id AND arrival_datetime >= :arrival_datetime AND arrival_datetime < :to_arrival_datetime
+                                    ORDER BY arrival_datetime"""),
+                 {"tractor_id": tractor_id, "arrival_datetime": arrival_datetime, "to_arrival_datetime": to_arrival_datetime})
+    stops = result1.fetchall()
+    if stops:
+        return [row._asdict() for row in stops]
+    else:
+        raise HTTPException(status_code=404, detail="Stops not found")
+    
+@app.get("/api/tractor_trips_disp/{tractorId}")
+async def get_tractor_trips_disp(tractorId: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(text("SELECT * FROM trips_disp WHERE tractor_id = :tractor_id"),
+                 {"tractor_id": tractorId})
+    trips = result.fetchall()
+    if trips:
+        return [row._asdict() for row in trips]
+    else:
+        raise HTTPException(status_code=404, detail="Trips not found")
+
+@app.get("/api/trip_disp/{tractor_id}/{arrival_datetime}")
+async def get_trip_disp(tractor_id: str, arrival_datetime: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(text("SELECT * FROM trips_disp WHERE tractor_id = :tractor_id  AND arrival_datetime = :arrival_datetime"),
+                 {"tractor_id": tractor_id, "arrival_datetime": arrival_datetime})
+    trip = result.fetchall()
+    if trip:
+        return [row._asdict() for row in trip]
+    else:
+        raise HTTPException(status_code=404, detail="Trip not found")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
